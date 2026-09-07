@@ -121,18 +121,29 @@ miyu:wogangcaishuolesm    →  你说的是测试一下。
 ```
 
 - 说的话进的是 Miyu 的一个固定会话（默认叫 `rime`，不存在就建），所以**前后文是连着的**，可以接着上一句问。想清空重开：`miyu session clear rime`。
+- 用哪个模型交给 Miyu 自己决定，跟着她的全局模型池走。想给这个会话单独定一个：`miyu session models rime <序号或模型名>`，`default` 恢复跟随全局。
 - 冒号后面的内容原样交给 Miyu，不参与提示词里 `cn:` / `jp:` / `moe:` 那套前缀组合。
-- 默认不给她工具、要求短答案纯文本，实测一问一答约 10 秒。回答太慢会按超时时间掐掉并显示错误候选。
+- 发给她的宿主指令里带了拼音还原的注意点（英文词、纯首字母简拼、前后鼻音、数字读音、断句和书名号）和自定义词库，所以 `mrfz` 这种简拼她也认。
+- 默认不给她工具、要求短答案纯文本，实测一问一答 4 到 15 秒。
+
+**问长问题不会卡死输入法。** Lua 那边是同步等待，等多久输入法就冻多久，所以设了两道时间：
+
+| 设置 | 默认 | 作用 |
+|---|---|---|
+| 输入法等待 | 25 秒 | 到点还没答完就放行，候选变成 `⏳ 已转后台` |
+| 回复超时 | 300 秒 | 交给 Miyu 的实际上限，到点取消 |
+
+转后台之后答案用桌面通知送达，同时落一份到 `~/.cache/rime-llm-translator/last_chat.txt`。想回到一直等的老行为，把「输入法等待」设成不小于「回复超时」就行。
 - 需要 Miyu 的 `ask` 支持 `--output-format` 和 `--session`（0.5.0 之后的程序驱动 CLI）。太旧的版本会被挡下并提示升级，不会把请求发出去。
 - 本机同时装了包管理器版和自编译版时，会自动挑够新的那个：设置里指定的路径 → PATH → `~/.local/bin` → `/usr/local/bin` → `/usr/bin`。fcitx5 拉起的进程 PATH 里常常没有 `~/.local/bin`，所以这一步不能只信 PATH。
-- 设置在 `rime-llm-config` 主菜单的「跟 Miyu 聊天」里：聊天前缀（**留空即关闭此功能**）、会话名、回复超时、是否允许她用工具、miyu 路径、宿主指令。
+- 设置在 `rime-llm-config` 主菜单的「跟 Miyu 聊天」里：聊天前缀（**留空即关闭此功能**）、会话名、回复超时、输入法等待、是否允许她用工具、miyu 路径、宿主指令。
 - 终端里 `rime-llm-config chat "nihao"` 可以直接试，`rime-llm-config status` 会显示当前前缀、会话和选中的 miyu 路径。
 
 ## 编辑配置
 
 `rime-llm-config`是编辑配置的TUI工具。TUI 里每次保存都会顺手把 `config.lua` 导出一遍，HTTP 线（读 `config.lua`）和 CLI 线（读 `state.json`）用的提示词和词库因此始终一致。
 
-> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。全局设置里跟 Miyu 聊天相关的字段：`miyu_prefix`、`miyu_session`、`miyu_timeout`、`miyu_tools`、`miyu_binary`、`miyu_prompt`。
+> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。全局设置里跟 Miyu 聊天相关的字段：`miyu_prefix`、`miyu_session`、`miyu_timeout`、`miyu_wait`、`miyu_tools`、`miyu_binary`、`miyu_prompt`。
 
 
 ![](pictures/TUI/mainmenu.png)

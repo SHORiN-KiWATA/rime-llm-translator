@@ -371,6 +371,8 @@ local function push_history(text, max_bytes)
     end
 end
 
+-- 缓存里以这个字节开头的值表示「这一问已经转后台了」，不是答案
+local BG_MARK = "\1"
 local REPLY_CACHE_SIZE = 16
 local reply_cache = { order = {}, map = {} }
 
@@ -402,7 +404,8 @@ local function config_tool_of(cfg)
     return "rime-llm-config"
 end
 
--- 跑 rime-llm-config 的一个子命令：stdout 就是正文，首行 `ERR: ...` 表示失败
+-- 跑 rime-llm-config 的一个子命令：stdout 就是正文，首行 `ERR: ...` 是失败，
+-- `BG: ...` 是「太久了，已经转后台，答完弹通知」（第三个返回值）
 local function run_config_tool(cmd, who)
     local handle = io.popen(cmd)
     if not handle then return nil, "io.popen 崩溃" end
@@ -411,6 +414,9 @@ local function run_config_tool(cmd, who)
     if response == "" then return nil, "无响应 (" .. who .. ")" end
     if string.sub(response, 1, 4) == "ERR:" then
         return nil, short(trim(string.sub(response, 6)), 60)
+    end
+    if string.sub(response, 1, 3) == "BG:" then
+        return nil, nil, short(trim(string.sub(response, 4)), 60)
     end
     return trim(response), nil
 end
@@ -644,18 +650,26 @@ local function translator_func(input, seg, env)
     send_text = string.gsub(send_text, "[\\/]", "、")
     if #send_text == 0 then return end
 
-    -- 聊天前缀：不看当前节点，直接找 Miyu 的固定会话；回复同样进缓存，避免 Rime 重建菜单时重复请求
+    -- 聊天前缀：不看当前节点，直接找 Miyu 的固定会话。回复和「已转后台」都进缓存，
+    -- 免得 Rime 重建菜单时重复提问（转后台的那句尤其不能再问一遍）
     local chat_text = chat_text_of(cfg, send_text)
     if chat_text then
         local history_text = table.concat(commit_history, "")
         local cache_key = table.concat({ "miyu-chat", chat_text, history_text }, "\0")
         local cached = cache_get(cache_key)
         if cached then
-            yield(llm_candidate(seg, cached, "✨ Miyu"))
+            if string.sub(cached, 1, 1) == BG_MARK then
+                yield(llm_candidate(seg, chat_text, "⏳ " .. string.sub(cached, 2)))
+            else
+                yield(llm_candidate(seg, cached, "✨ Miyu"))
+            end
             return
         end
-        local text, err = ask_chat_backend(cfg, chat_text)
-        if text and text ~= "" then
+        local text, err, pending = ask_chat_backend(cfg, chat_text)
+        if pending then
+            cache_put(cache_key, BG_MARK .. pending)
+            yield(llm_candidate(seg, chat_text, "⏳ " .. pending))
+        elseif text and text ~= "" then
             cache_put(cache_key, text)
             yield(llm_candidate(seg, text, "✨ Miyu"))
         else

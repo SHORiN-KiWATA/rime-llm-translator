@@ -18,6 +18,7 @@ import subprocess
 import re
 import tempfile
 import time
+import select
 
 # ==========================================
 # 🌐 国际化与双语支持 (I18N)
@@ -110,6 +111,7 @@ I18N = {
         "tui_st_miyu_prefix": "Chat prefix (empty=off)",
         "tui_st_miyu_session": "Session name",
         "tui_st_miyu_timeout": "Timeout (s)",
+        "tui_st_miyu_wait": "Inline wait (s)",
         "tui_st_miyu_tools": "May use tools",
         "tui_st_miyu_prompt": "Host instructions",
         "tui_st_miyu_binary": "miyu path (empty=auto)",
@@ -119,6 +121,10 @@ I18N = {
         "tui_miyu_title": " Chat with Miyu ",
         "tui_miyu_off": "off",
         "tui_miyu_bad": "Miyu is not usable right now:\n{}\n\nSettings are still editable.",
+        "chat_bg": "still thinking after {}s, handed off; you will get a notification",
+        "chat_bg_lost": "the background worker returned nothing",
+        "chat_notify_ok": "Miyu",
+        "chat_notify_err": "Miyu (failed)",
 
         # TUI Vocab
         "tui_vc_title": " Custom Vocabulary ",
@@ -268,6 +274,7 @@ I18N = {
         "tui_st_miyu_prefix": "聊天前缀 (留空关闭)",
         "tui_st_miyu_session": "会话名",
         "tui_st_miyu_timeout": "回复超时 (秒)",
+        "tui_st_miyu_wait": "输入法等待 (秒)",
         "tui_st_miyu_tools": "允许她使用工具",
         "tui_st_miyu_prompt": "宿主指令",
         "tui_st_miyu_binary": "miyu 路径 (留空自动)",
@@ -277,6 +284,10 @@ I18N = {
         "tui_miyu_title": " 跟 Miyu 聊天 ",
         "tui_miyu_off": "已关闭",
         "tui_miyu_bad": "现在还用不了 Miyu：\n{}\n\n设置仍然可以先填好。",
+        "chat_bg": "{}秒还没答完，已转后台，答完弹通知",
+        "chat_bg_lost": "后台没有返回内容",
+        "chat_notify_ok": "Miyu",
+        "chat_notify_err": "Miyu（失败）",
 
         # TUI Vocab
         "tui_vc_title": " 自定义词库 ",
@@ -380,6 +391,7 @@ DEBUG_FLAG = os.path.join(RUNTIME_DIR or CACHE_DIR, "rime-llm-debug.flag")
 DEBUG_LOG = os.path.join(CACHE_DIR, "debug.log")
 # 本机可能同时装着包管理器的旧版和自编译的新版，探测结果按 (路径, mtime, 大小) 缓存
 MIYU_CAPS_FILE = os.path.join(CACHE_DIR, "miyu_caps.json")
+CHAT_LAST_FILE = os.path.join(CACHE_DIR, "last_chat.txt")
 MIYU_HOME = os.environ.get("MIYU_HOME", os.path.expanduser("~/.miyu"))
 MIYU_CONFIG = os.path.join(MIYU_HOME, "config", "config.jsonc")
 MIYU_CATALOG = os.path.join(MIYU_HOME, "cache", "models_cache.json")
@@ -389,11 +401,21 @@ DEFAULT_CLI_TIMEOUT = 60.0
 # `miyu:` 前缀聊天：不经过当前节点，直接找 Miyu 的一个固定会话（跨调用连续）
 DEFAULT_MIYU_PREFIX = "miyu:"
 DEFAULT_MIYU_SESSION = "rime"
-DEFAULT_MIYU_TIMEOUT = 60.0
+DEFAULT_MIYU_TIMEOUT = 300.0
+# 内联等待多久：到点还没答完就把这一问交给后台，答案改用桌面通知送达，输入法先放行
+DEFAULT_MIYU_WAIT = 25.0
 DEFAULT_MIYU_PROMPT = (
-    "现在是用户通过 Rime 输入法在别的软件里打字时呼叫你：消息是汉语拼音（可能夹杂错拼、简拼和英文单词），"
-    "请先按语境把拼音还原成中文，再回答。你的回答会直接作为用户的打字内容上屏，所以：只回答问题本身，尽量简短，"
-    "纯文本单段，不用 Markdown、列表和标题，不要客套话，不要反问。"
+    "现在是用户通过 Rime 输入法在别的软件里打字时呼叫你：消息是汉语拼音，可能有错拼、漏拼、乱序，"
+    "也可能夹着英文单词。请先按语境把拼音还原成中文，再回答。\n"
+    "还原拼音时注意：\n"
+    "1. 准确还原语境中的英文词汇。\n"
+    "2. 高度重视纯首字母简拼（如 mrfz=明日方舟）。\n"
+    "3. 重视前后鼻音区分，用户可能发给你错误的前后鼻音，你要通过前后的拼音上下文做出正确的判断。\n"
+    "4. 拼音里出现数字的读音（如 yibai、san、erlingerliu、shalujiantaer、kimierdianliu），"
+    "请结合语境理解成阿拉伯数字（如 100、3、2026、杀戮尖塔2、kimi2.6）。\n"
+    "5. 拼音里没有标点，请按语境自行断句；遇到游戏、书籍、影视等作品名按《》理解。\n"
+    "你的回答会直接作为用户的打字内容上屏，所以：只回答问题本身，尽量简短，纯文本单段，"
+    "不用 Markdown、列表和标题，不要客套话，不要反问。"
 )
 
 # ==========================================
@@ -1321,9 +1343,114 @@ def miyu_chat(settings, vocab, text):
     raise RuntimeError(err or _clean_answer(out)[-200:] or f"miyu exited with {rc}")
 
 
+def _notify(title, body):
+    if not shutil.which("notify-send"):
+        return
+    try:
+        subprocess.Popen(["notify-send", "-a", "rime-llm-translator", title, body],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
+def _chat_deliver(question, payload, ok):
+    """输入法那边已经不等了：答案改用桌面通知送达，并落一份到文件方便取全文。"""
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(CHAT_LAST_FILE, "w", encoding="utf-8") as f:
+            f.write(f"{question}\n\n{payload}\n")
+    except OSError:
+        pass
+    _notify(t("chat_notify_ok") if ok else t("chat_notify_err"), payload[:600])
+
+
+def _chat_once(settings, state, user_text, session):
+    """跑一次问答，返回 (正文或 `ERR: ...`, 成功与否)。"""
+    t0 = time.time()
+    try:
+        answer, model, _elapsed = miyu_chat(settings, state.get("vocab", {}), user_text)
+    except Exception as e:
+        _debug_log(f"【Miyu 聊天】 {session}", user_text, f"ERR: {e}", time.time() - t0)
+        return f"ERR: {e}", False
+    _debug_log(f"【Miyu 聊天】 {session} ({model})", user_text, answer, time.time() - t0)
+    return answer, True
+
+
+def _chat_handoff(settings, state, user_text, session, wait):
+    """等 wait 秒；到点没答完就把这一问留给后台进程，自己先退出让输入法解冻。
+
+    Lua 侧是同步 io.popen，等多久输入法就冻多久，所以长问题必须能中途放手。
+    父子之间用一个管道传结果，外加一个「父进程还在等」的标记文件做交接判定。"""
+    fd, alive_path = tempfile.mkstemp(prefix="rime-chat-")
+    os.close(fd)
+    read_fd, write_fd = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        try:
+            os.close(read_fd)
+            os.setsid()
+            # 必须换掉继承来的 stdout，否则父进程走了 Lua 那边的管道还不会 EOF
+            null = os.open(os.devnull, os.O_RDWR)
+            os.dup2(null, 0); os.dup2(null, 1); os.dup2(null, 2)
+            payload, ok = _chat_once(settings, state, user_text, session)
+            handed = not os.path.exists(alive_path)
+            if not handed:
+                try:
+                    os.write(write_fd, payload.encode("utf-8"))
+                    os.close(write_fd)
+                except OSError:
+                    handed = True
+                # 父进程可能正好在这一瞬超时走了，补一条通知总比丢了强
+                if not handed and not os.path.exists(alive_path):
+                    handed = True
+            if handed:
+                _chat_deliver(user_text, payload, ok)
+        except BaseException:
+            pass
+        finally:
+            os._exit(0)
+
+    os.close(write_fd)
+    ready, _, _ = select.select([read_fd], [], [], wait)
+    if ready:
+        chunks = []
+        while True:
+            try:
+                block = os.read(read_fd, 65536)
+            except OSError:
+                break
+            if not block:
+                break
+            chunks.append(block)
+        os.close(read_fd)
+        try:
+            os.waitpid(pid, 0)
+        except OSError:
+            pass
+        try:
+            os.unlink(alive_path)
+        except OSError:
+            pass
+        payload = b"".join(chunks).decode("utf-8", "replace")
+        if not payload:
+            print("ERR: " + t("chat_bg_lost")); return 1
+        if payload.startswith("ERR:"):
+            print(payload); return 1
+        sys.stdout.write(payload)
+        return 0
+    # 交接：先摘掉标记，子进程读到就知道该发通知了
+    try:
+        os.unlink(alive_path)
+    except OSError:
+        pass
+    os.close(read_fd)
+    print("BG: " + t("chat_bg", f"{wait:g}"))
+    return 0
+
+
 def run_chat(argv):
     """`rime-llm-config chat <text>`：把一句话发进 Miyu 的固定会话，正文写 stdout；
-    失败时 stdout 首行为 `ERR: ...` 并以 1 退出（与 ask 同一套约定）。"""
+    失败时首行 `ERR: ...` 并以 1 退出，转后台时首行 `BG: ...`（Lua 侧靠前缀分辨）。"""
     user_text = " ".join(argv).strip()
     if not user_text and not sys.stdin.isatty():
         user_text = sys.stdin.read().strip()
@@ -1332,14 +1459,14 @@ def run_chat(argv):
     state = load_state()
     settings = state.get("settings", {})
     session = settings.get("miyu_session", DEFAULT_MIYU_SESSION)
-    t0 = time.time()
-    try:
-        answer, model, _elapsed = miyu_chat(settings, state.get("vocab", {}), user_text)
-    except Exception as e:
-        _debug_log(f"【Miyu 聊天】 {session}", user_text, f"ERR: {e}", time.time() - t0)
-        print(f"ERR: {e}"); return 1
-    _debug_log(f"【Miyu 聊天】 {session} ({model})", user_text, answer, time.time() - t0)
-    sys.stdout.write(answer)
+    wait = _settings_float(settings, "miyu_wait", DEFAULT_MIYU_WAIT)
+    timeout = _settings_float(settings, "miyu_timeout", DEFAULT_MIYU_TIMEOUT)
+    if 0 < wait < timeout:
+        return _chat_handoff(settings, state, user_text, session, wait)
+    payload, ok = _chat_once(settings, state, user_text, session)
+    if not ok:
+        print(payload); return 1
+    sys.stdout.write(payload)
     return 0
 
 
@@ -1431,8 +1558,8 @@ def get_default_state():
             "ai_trigger": "vv", "max_tokens": 4000, "temperature": 0.1,
             "connect_timeout": 2.0, "max_time": 30.0, "cli_timeout": DEFAULT_CLI_TIMEOUT, "max_history_bytes": 240,
             "miyu_prefix": DEFAULT_MIYU_PREFIX, "miyu_session": DEFAULT_MIYU_SESSION,
-            "miyu_timeout": DEFAULT_MIYU_TIMEOUT, "miyu_tools": False, "miyu_prompt": DEFAULT_MIYU_PROMPT,
-            "miyu_binary": "",
+            "miyu_timeout": DEFAULT_MIYU_TIMEOUT, "miyu_wait": DEFAULT_MIYU_WAIT,
+            "miyu_tools": False, "miyu_prompt": DEFAULT_MIYU_PROMPT, "miyu_binary": "",
         },
         "vocab": {"terms": [], "mappings": {}},
     }
@@ -1470,8 +1597,8 @@ def migrate_state(data, default_state):
         data["settings"].setdefault(k, v)
     data["settings"].setdefault("cli_timeout", DEFAULT_CLI_TIMEOUT)
     for k, v in (("miyu_prefix", DEFAULT_MIYU_PREFIX), ("miyu_session", DEFAULT_MIYU_SESSION),
-                 ("miyu_timeout", DEFAULT_MIYU_TIMEOUT), ("miyu_tools", False),
-                 ("miyu_prompt", DEFAULT_MIYU_PROMPT), ("miyu_binary", "")):
+                 ("miyu_timeout", DEFAULT_MIYU_TIMEOUT), ("miyu_wait", DEFAULT_MIYU_WAIT),
+                 ("miyu_tools", False), ("miyu_prompt", DEFAULT_MIYU_PROMPT), ("miyu_binary", "")):
         data["settings"].setdefault(k, v)
     # 自带节点只播种一次：记下已经播过的 id，用户删掉的不再复活
     seeded = data.get("seeded_defaults")
@@ -1850,7 +1977,7 @@ def cli_handler():
                 except Exception as e:
                     where = f"! {e}"
                 miyu_desc = (f"{prefix} → session '{s.get('miyu_session', DEFAULT_MIYU_SESSION)}', "
-                             f"{s.get('miyu_timeout', DEFAULT_MIYU_TIMEOUT)}s, "
+                             f"wait {s.get('miyu_wait', DEFAULT_MIYU_WAIT)}s / max {s.get('miyu_timeout', DEFAULT_MIYU_TIMEOUT)}s, "
                              f"tools={'on' if s.get('miyu_tools') else 'off'}, {where}")
             else:
                 miyu_desc = "off"
@@ -2703,6 +2830,7 @@ def run_app(stdscr):
                 {"label": t('tui_st_miyu_prefix'), "value": str(s.get("miyu_prefix", DEFAULT_MIYU_PREFIX) or "")},
                 {"label": t('tui_st_miyu_session'), "value": str(s.get("miyu_session", DEFAULT_MIYU_SESSION) or "")},
                 {"label": t('tui_st_miyu_timeout'), "value": str(s.get("miyu_timeout", DEFAULT_MIYU_TIMEOUT))},
+                {"label": t('tui_st_miyu_wait'), "value": str(s.get("miyu_wait", DEFAULT_MIYU_WAIT))},
                 {"label": t('tui_st_miyu_tools'), "value": t('tui_yes') if s.get("miyu_tools") else t('tui_no'),
                  "type": "select", "options": [t('tui_no'), t('tui_yes')]},
                 {"label": t('tui_st_miyu_binary'), "value": str(s.get("miyu_binary", "") or "")},
@@ -2713,9 +2841,10 @@ def run_app(stdscr):
                 s["miyu_prefix"] = res[0].strip()
                 s["miyu_session"] = res[1].strip() or DEFAULT_MIYU_SESSION
                 s["miyu_timeout"] = float(res[2]) if res[2].replace('.','',1).isdigit() else DEFAULT_MIYU_TIMEOUT
-                s["miyu_tools"] = (res[3] == t('tui_yes'))
-                s["miyu_binary"] = res[4].strip()
-                s["miyu_prompt"] = res[5].strip() or DEFAULT_MIYU_PROMPT
+                s["miyu_wait"] = float(res[3]) if res[3].replace('.','',1).isdigit() else DEFAULT_MIYU_WAIT
+                s["miyu_tools"] = (res[4] == t('tui_yes'))
+                s["miyu_binary"] = res[5].strip()
+                s["miyu_prompt"] = res[6].strip() or DEFAULT_MIYU_PROMPT
                 save_state(state)
 
         elif choice == "edit_vocab":

@@ -340,7 +340,7 @@ CLI_BACKENDS = {
         "models": ["opencode/big-pickle", "opencode/mimo-v2.5-free"], "default": "opencode/big-pickle",
     },
     "miyu": {
-        "id": "miyu", "name": "Miyu (uses Miyu current model)", "binary": "miyu",
+        "id": "miyu", "name": "Miyu CLI", "binary": "miyu",
         "models": ["auto"], "default": "auto",
     },
 }
@@ -517,7 +517,7 @@ def miyu_profiles():
                 api_url = base_url if base_url.lower().endswith("/chat/completions") else base_url + "/chat/completions"
         pid = "miyu_" + re.sub(r"[^a-zA-Z0-9_]", "_", raw_id)
         profiles[pid] = {
-            "name": f"{prov.get('display_name') or raw_id} (Miyu)", "protocol": protocol,
+            "name": str(prov.get('display_name') or raw_id), "protocol": protocol,
             "api_url": api_url, "api_key": api_key, "binary": binary,
             "model": default_model, "effort": "", "source": "miyu",
         }
@@ -1414,7 +1414,8 @@ class ProviderEditorTUI:
         for pid, p in self.state["profiles"].items():
             tag = profile_tag(p)
             self.providers.append({"id": pid, "name": p.get("name", pid), "label": (f"[{tag}] " if tag else "") + p.get("name", pid), "api_url": p.get("api_url", ""), "api_key": p.get("api_key", ""), "model": p.get("model", ""), "thinking_mode": p.get("thinking_mode", ""), "protocol": profile_protocol(p), "binary": p.get("binary", ""), "effort": p.get("effort", ""), "source": p.get("source", "")})
-        self.providers.sort(key=lambda x: x["name"].lower())
+        # 分组：自己的节点 → 本机 CLI → Miyu 导入，组内按名字排
+        self.providers.sort(key=lambda x: ({"": 0, "user": 0, "builtin": 1, "miyu": 2}.get(x.get("source", ""), 0), x["name"].lower()))
         if not self.providers: self.providers.append({"id": "empty", "name": "No Providers", "label": "No Providers", "api_url": "", "api_key": "", "model": "", "protocol": "openai", "source": ""})
 
     def run(self):

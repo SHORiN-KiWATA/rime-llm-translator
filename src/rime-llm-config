@@ -166,6 +166,7 @@ I18N = {
         "tui_sm_think_set": "✓ Thinking for {} set to {}",
         "tui_sm_think_none": "This model has no selectable thinking level.",
         "tui_sm_think_tag": "thinking: {}",
+        "tui_sm_think_mark": "[think]",
         "tui_sm_catalog": "Downloading models.dev catalog...",
         "tui_sm_catalog_ok": "models.dev catalog updated ({} providers)",
         "tui_sm_catalog_fail": "models.dev catalog unavailable, using built-in heuristics",
@@ -309,6 +310,7 @@ I18N = {
         "tui_sm_think_set": "✓ {} 的思考档位已设为 {}",
         "tui_sm_think_none": "该模型没有可选的思考档位。",
         "tui_sm_think_tag": "思考: {}",
+        "tui_sm_think_mark": "[思考]",
         "tui_sm_catalog": "正在下载 models.dev 模型目录...",
         "tui_sm_catalog_ok": "models.dev 模型目录已更新（{} 个供应商）",
         "tui_sm_catalog_fail": "models.dev 目录不可用，按内置规则推断思考档位",
@@ -462,7 +464,7 @@ def protocol_from_label(label):
 
 
 # ==========================================
-# 🧠 思考档位：按「节点 + 模型」存 id
+# 思考档位：按「节点 + 模型」存 id
 # ==========================================
 # profile["thinking"] = {"<model>": "<variant id>"}；id 取值：
 #   off  关闭 / 供应商默认            on   开启（toggle 型）
@@ -2414,7 +2416,7 @@ class ProviderEditorTUI:
                 m_name = self.model_list[idx]['name']
                 variants, family = self._variants_for(full)
                 if len(variants) > 1:
-                    m_name += " 🧠"
+                    m_name += " " + t('tui_sm_think_mark')
                 if prov["model"] == full:
                     vid = profile_thinking(prov["profile"], full)
                     m_name += " [Current]"

@@ -72,11 +72,11 @@
       ```
       patch:
         # 1. 扩充允许输入的字符集：允许在拼音中直接输入指定的标点符号，阻止其直接上屏
-        "speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?'!:<>"
+        "speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?'!:<>\\/"
         # 2. 将 Lua AI 脚本 (llm_translator) 强行插入到处理列表的第 0 位之前
         "engine/translators/@before 0": lua_translator@llm_translator
         # 3. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
-        "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:]*$"
+        "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:<>/\\\\]*$"
       ```
 
     - 如果fcitx5正在运行的话，重启以重新部署。
@@ -145,3 +145,33 @@
   这里可以自定义词库。`常用英文词`是为了避免ai把句子中的英文视为拼音进行分词；`拼音缩写映射`可以提高首字母缩写、简拼的联想质量。
 
   ![](pictures/TUI/vocab3.png)
+
+## 移除该功能
+
+1. 删除 `~/.local/share/fcitx5/rime/rime.lua` 中的这一行（如果文件里只有这一行，直接删文件）：
+
+    ```
+    llm_translator = require("llm_translator")
+    ```
+
+2. 删除 `~/.local/share/fcitx5/rime/rime_ice.custom.yaml` 中的三条 patch（如果文件是 init 新建的，直接删文件）：
+
+    ```
+      # 1. 扩充允许输入的字符集：允许在拼音中直接输入指定的标点符号，阻止其直接上屏
+      "speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?'!:<>\\/"
+      # 2. 将 Lua AI 脚本 (llm_translator) 强行插入到处理列表的第 0 位之前
+      "engine/translators/@before 0": lua_translator@llm_translator
+      # 3. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
+      "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:<>/\\\\]*$"
+    ```
+
+    > init 之前的原文件备份在 `~/.cache/rime-llm-translator-backup/`，直接覆盖回去也可以。
+
+3. 移除缓存、配置和软件包：
+
+    ```
+    gio trash ~/.config/rime-llm-translator ~/.cache/rime-llm-translator ~/.cache/rime-llm-translator-backup
+    yay -Rns rime-llm-translator-git
+    ```
+
+4. 重启 fcitx5（或在托盘菜单点「重新部署」）让 Rime 重新部署。

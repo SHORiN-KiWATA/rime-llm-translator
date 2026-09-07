@@ -58,7 +58,7 @@
 
     这一步会自动在`~/.local/fcitx5/rime`编辑配置文件：
 
-    > 配置文件在修改前会备份至`~/.cache/rime-llm-translator-backup`
+    > 配置文件在修改前会备份至`~/.cache/rime-llm-translator/backup/`
     
     - 新建`rime.lua`导入`llm_translator`，并注册触发键处理器；
     

@@ -19,6 +19,7 @@ import re
 import tempfile
 import time
 import select
+import base64
 
 # ==========================================
 # 🌐 国际化与双语支持 (I18N)
@@ -1118,6 +1119,69 @@ def vocab_block(vocab):
     return "\n".join(lines)
 
 
+# `base:` 由程序做：模型算 base64 又慢又错，让它只负责把拼音变成中文，编码交给这里。
+# 其余前缀（call/jp/moe/…）照旧原样传给模型，程序不认识也不需要认识。
+BASE64_WORD = "base"
+
+
+def prefix_words(settings):
+    """从提示词里认识的前缀词，用来拆 `basejp:` 这种连写。抓不全没关系，拆不开就原样放过。"""
+    words = set(re.findall(r"`([a-z]+):", str(settings.get("prompt", "") or "")))
+    words.add(BASE64_WORD)
+    return words
+
+
+def split_prefix(text):
+    """把开头连续的 `xxx:` 拆成段，返回 (段列表, 正文)。"""
+    segs, rest = [], text
+    while True:
+        m = re.match(r"^([a-z]+):(.*)$", rest, re.S)
+        if not m:
+            break
+        segs.append(m.group(1))
+        rest = m.group(2)
+    return segs, rest
+
+
+def _greedy_split(seg, words):
+    """把连写的一段按已知词从左到右贪婪切开；切不干净返回 None。"""
+    parts, pos = [], 0
+    while pos < len(seg):
+        best = ""
+        for w in words:
+            if len(w) > len(best) and seg.startswith(w, pos):
+                best = w
+        if not best:
+            return None
+        parts.append(best)
+        pos += len(best)
+    return parts
+
+
+def strip_base_prefix(text, words):
+    """摘掉 `base`，返回 (交给模型的文本, 要不要编码)。"""
+    segs, rest = split_prefix(text)
+    if not segs:
+        return text, False
+    kept, found = [], False
+    for seg in segs:
+        if seg == BASE64_WORD:
+            found = True
+            continue
+        if BASE64_WORD in seg:
+            parts = _greedy_split(seg, words)
+            if parts and BASE64_WORD in parts:
+                found = True
+                left = [w for w in parts if w != BASE64_WORD]
+                if left:
+                    kept.append("".join(left))
+                continue
+        kept.append(seg)
+    if not found:
+        return text, False
+    return (":".join(kept) + ":" + rest if kept else rest), True
+
+
 def _run_cli(argv, stdin_text=None, cwd=None, timeout=DEFAULT_CLI_TIMEOUT, env=None):
     """跑一个 CLI 子进程，整组进程超时即杀；返回 (returncode, stdout, stderr_tail)。"""
     proc = subprocess.Popen(
@@ -1496,6 +1560,9 @@ def run_ask(argv):
     if not profile_is_cli(profile):
         print(f"ERR: profile '{profile_id}' is not a CLI backend"); return 1
     settings = state.get("settings", {})
+    user_text, want_base64 = strip_base_prefix(user_text, prefix_words(settings))
+    if not user_text.strip():
+        print("ERR: empty input"); return 1
     system_prompt = compose_system_prompt(settings, state.get("vocab", {}))
     if history:
         user_text = f"【历史输入】：{history}\n【当前用户输入（如果由call开头说明是指令）】：{user_text}"
@@ -1510,6 +1577,8 @@ def run_ask(argv):
     except Exception as e:
         _debug_log(label, user_text, f"ERR: {e}", time.time() - t0)
         print(f"ERR: {e}"); return 1
+    if want_base64:
+        answer = base64.b64encode(answer.encode("utf-8")).decode("ascii")
     _debug_log(label, user_text, answer, time.time() - t0)
     sys.stdout.write(answer)
     return 0
@@ -1736,6 +1805,7 @@ return {{
     max_history_bytes = {lua_num(settings.get('max_history_bytes', 240), 240)},
     cli_timeout = {lua_num(settings.get('cli_timeout', DEFAULT_CLI_TIMEOUT), DEFAULT_CLI_TIMEOUT)},
     miyu_prefix = {lua_str(str(settings.get('miyu_prefix', DEFAULT_MIYU_PREFIX) or '').strip())},
+    prefix_words = {{ {", ".join(lua_str(w) for w in sorted(prefix_words(settings)))} }},
     config_tool = {lua_str(os.path.realpath(sys.argv[0]))},
     tmp_dirs = {{ {", ".join(lua_str(d) for d in tmp_dirs)} }},
     debug_flag = {lua_str(DEBUG_FLAG)},

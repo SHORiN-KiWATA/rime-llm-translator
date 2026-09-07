@@ -311,6 +311,96 @@ local function short(s, n)
     return (string.gsub(string.sub(s or "", 1, n or 40), "[\r\n]", " "))
 end
 
+-- ==============================================================================
+-- `base:` 前缀：模型算 base64 又慢又错，让它只把拼音变成中文，编码在这边做。
+-- 其余前缀（call / jp / moe / …）程序不认识，原样传给模型。
+-- ==============================================================================
+local B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local BASE64_WORD = "base"
+
+local function base64_encode(data)
+    local out, len, i = {}, #data, 1
+    while i <= len do
+        local a = string.byte(data, i)
+        local b = string.byte(data, i + 1)
+        local c = string.byte(data, i + 2)
+        local n = a * 65536 + (b or 0) * 256 + (c or 0)
+        local i1 = math.floor(n / 262144) % 64
+        local i2 = math.floor(n / 4096) % 64
+        local i3 = math.floor(n / 64) % 64
+        local i4 = n % 64
+        out[#out + 1] = string.sub(B64_ALPHABET, i1 + 1, i1 + 1)
+        out[#out + 1] = string.sub(B64_ALPHABET, i2 + 1, i2 + 1)
+        out[#out + 1] = b and string.sub(B64_ALPHABET, i3 + 1, i3 + 1) or "="
+        out[#out + 1] = c and string.sub(B64_ALPHABET, i4 + 1, i4 + 1) or "="
+        i = i + 3
+    end
+    return table.concat(out)
+end
+
+-- 开头连续的 `xxx:` 拆成段
+local function split_prefix(text)
+    local segs, rest = {}, text
+    while true do
+        local seg, tail = string.match(rest, "^([a-z]+):(.*)$")
+        if not seg then break end
+        segs[#segs + 1] = seg
+        rest = tail
+    end
+    return segs, rest
+end
+
+-- 连写的一段按已知词从左到右贪婪切开；切不干净返回 nil，调用方原样放过
+local function greedy_split(seg, words)
+    local parts, pos = {}, 1
+    while pos <= #seg do
+        local best = ""
+        for _, w in ipairs(words) do
+            if #w > #best and string.sub(seg, pos, pos + #w - 1) == w then best = w end
+        end
+        if best == "" then return nil end
+        parts[#parts + 1] = best
+        pos = pos + #best
+    end
+    return parts
+end
+
+-- 摘掉 base，返回 (交给模型的文本, 要不要编码)
+local function strip_base_prefix(cfg, text)
+    local segs, rest = split_prefix(text)
+    if #segs == 0 then return text, false end
+    local words = (cfg and cfg.prefix_words) or { BASE64_WORD }
+    local kept, found = {}, false
+    for _, seg in ipairs(segs) do
+        if seg == BASE64_WORD then
+            found = true
+        elseif string.find(seg, BASE64_WORD, 1, true) then
+            local parts = greedy_split(seg, words)
+            local hit = false
+            if parts then
+                for _, w in ipairs(parts) do
+                    if w == BASE64_WORD then hit = true end
+                end
+            end
+            if hit then
+                found = true
+                local left = {}
+                for _, w in ipairs(parts) do
+                    if w ~= BASE64_WORD then left[#left + 1] = w end
+                end
+                if #left > 0 then kept[#kept + 1] = table.concat(left) end
+            else
+                kept[#kept + 1] = seg
+            end
+        else
+            kept[#kept + 1] = seg
+        end
+    end
+    if not found then return text, false end
+    if #kept == 0 then return rest, true end
+    return table.concat(kept, ":") .. ":" .. rest, true
+end
+
 local function dir_exists(path)
     if not path or path == "" then return false end
     local ok = os.rename(path, path)
@@ -678,6 +768,11 @@ local function translator_func(input, seg, env)
         return
     end
 
+    -- base64 归程序算，模型只管把拼音变成中文
+    local want_base64
+    send_text, want_base64 = strip_base_prefix(cfg, send_text)
+    if #send_text == 0 then return end
+
     local profile_id = cfg.active_profile or ""
     local profile = cfg.profiles and cfg.profiles[profile_id]
     if not profile then
@@ -686,7 +781,8 @@ local function translator_func(input, seg, env)
     end
 
     local history_text = table.concat(commit_history, "")
-    local cache_key = table.concat({ profile_id, tostring(profile.model), tostring(profile.request_extra), send_text, history_text }, "\0")
+    local cache_key = table.concat({ profile_id, tostring(profile.model), tostring(profile.request_extra),
+        tostring(want_base64), send_text, history_text }, "\0")
     local cached = cache_get(cache_key)
     if cached then
         yield(llm_candidate(seg, cached, "✨ " .. (profile.name or "AI")))
@@ -701,6 +797,7 @@ local function translator_func(input, seg, env)
     end
 
     if text and text ~= "" then
+        if want_base64 then text = base64_encode(text) end
         cache_put(cache_key, text)
         yield(llm_candidate(seg, text, "✨ " .. (profile.name or "AI")))
     else
@@ -788,4 +885,6 @@ return {
     _extract_reply = extract_reply,
     _effective_protocol = effective_protocol,
     _chat_text_of = chat_text_of,
+    _strip_base_prefix = strip_base_prefix,
+    _base64_encode = base64_encode,
 }

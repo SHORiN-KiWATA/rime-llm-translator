@@ -19,6 +19,18 @@
 local PROP_ARMED = "llm_armed"
 local kRejected, kAccepted, kNoop = 0, 1, 2
 
+-- 调试 trace：设置环境变量 RIME_LLM_TRACE=<文件路径> 后逐步记录（平时不设，零开销）
+local trace_path = os.getenv("RIME_LLM_TRACE")
+local function trace(...)
+    if not trace_path then return end
+    local f = io.open(trace_path, "a")
+    if not f then return end
+    local parts = {}
+    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    f:write(os.date("%H:%M:%S "), table.concat(parts, " "), "\n")
+    f:close()
+end
+
 -- ==============================================================================
 -- JSON（编码 + 解码，够用即可：对象 / 数组 / 字符串 / 数字 / 布尔 / null）
 -- ==============================================================================
@@ -555,14 +567,24 @@ end
 -- ==============================================================================
 -- translator
 -- ==============================================================================
+-- 编码区只剩纯拼音后，AI 候选和词库候选跨度相同，Rime 按 quality 排序；给足 quality 才能排在第一位
+local LLM_QUALITY = 1000000
+
+local function llm_candidate(seg, text, comment)
+    local cand = Candidate("llm", seg.start, seg._end, text, comment)
+    cand.quality = LLM_QUALITY
+    return cand
+end
+
 local function yield_error(seg, text, msg)
-    yield(Candidate("llm", seg.start, seg._end, text, "❌ " .. tostring(msg)))
+    yield(llm_candidate(seg, text, "❌ " .. tostring(msg)))
 end
 
 local function translator_func(input, seg, env)
     local ctx = env.engine.context
     local cfg, cfg_err = load_config()
     local trigger = trigger_of(cfg)
+    trace("translator: input=", input, "seg=", seg.start, seg._end, "ctx.input=", ctx.input, "armed=", ctx:get_property(PROP_ARMED), "cfg=", cfg and "ok" or cfg_err)
 
     -- 1) processor 武装：编码区是纯拼音，property 记着武装时的拼音
     -- 2) 兼容旧接法（没装 processor）：拼音以触发词结尾
@@ -576,8 +598,10 @@ local function translator_func(input, seg, env)
         return
     end
 
+    trace("translator: send_text=", send_text)
     if send_text == "test" then
-        yield(Candidate("llm", seg.start, seg._end, "✅ rime-llm-translator 挂载成功!", "连通测试"))
+        yield(llm_candidate(seg, "✅ rime-llm-translator 挂载成功!", "连通测试"))
+        trace("translator: yielded test candidate")
         return
     end
     if not cfg then
@@ -599,7 +623,7 @@ local function translator_func(input, seg, env)
     local cache_key = table.concat({ profile_id, tostring(profile.model), tostring(profile.request_extra), send_text, history_text }, "\0")
     local cached = cache_get(cache_key)
     if cached then
-        yield(Candidate("llm", seg.start, seg._end, cached, "✨ " .. (profile.name or "AI")))
+        yield(llm_candidate(seg, cached, "✨ " .. (profile.name or "AI")))
         return
     end
 
@@ -612,7 +636,7 @@ local function translator_func(input, seg, env)
 
     if text and text ~= "" then
         cache_put(cache_key, text)
-        yield(Candidate("llm", seg.start, seg._end, text, "✨ " .. (profile.name or "AI")))
+        yield(llm_candidate(seg, text, "✨ " .. (profile.name or "AI")))
     else
         yield_error(seg, send_text, err or "未知错误")
     end
@@ -658,8 +682,10 @@ local function processor_func(key, env)
     local armed_text = string.sub(head, 1, #head - #prefix) .. tail
     if armed_text == "" then return kNoop end
 
+    trace("processor: arming", armed_text, "input=", input, "caret=", caret)
     ctx:set_property(PROP_ARMED, armed_text)
     ctx:pop_input(#prefix)   -- 触发 update → 重新翻译，translator 看到 property 后发请求
+    trace("processor: after pop input=", ctx.input, "armed=", ctx:get_property(PROP_ARMED))
     return kAccepted
 end
 
@@ -668,6 +694,7 @@ local function processor_init(env)
     -- 编码区一变、不再等于武装时的拼音，就解除武装（退格、Esc、上屏后的 Clear 都会走到这里）
     env.llm_update_conn = ctx.update_notifier:connect(function(c)
         local armed = c:get_property(PROP_ARMED)
+        trace("update_notifier: input=", c.input, "armed=", armed)
         if armed ~= "" and c.input ~= armed then c:set_property(PROP_ARMED, "") end
     end)
     -- 选了候选（含分段选词）就解除武装；想对剩余部分再用 AI 就再按一次触发词

@@ -60,26 +60,32 @@
 
     > 配置文件在修改前会备份至`~/.cache/rime-llm-translator-backup`
     
-    - 新建`rime.lua`导入`llm_translator`；
+    - 新建`rime.lua`导入`llm_translator`，并注册触发键处理器；
     
       ```
       llm_translator = require("llm_translator")
+      llm_processor = llm_translator.processor
       ```
-      > 如果已经存在的话会备份后在文件末尾追加
+      > 如果已经存在的话会备份后在文件末尾追加；旧版只有第一行的会补上第二行
     
-    - 如果检测到安装了雾凇拼音的话会新建`rime_ice.custom.yaml`写入patch，启用llm_translator并配置一些上屏规则；
+    - 如果检测到安装了雾凇拼音的话会新建`rime_ice.custom.yaml`写入patch，启用处理器和翻译器并配置一些上屏规则；
 
       ```
       patch:
-        # 1. 扩充允许输入的字符集：允许在拼音中直接输入指定的标点符号，阻止其直接上屏
-        "speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?'!:<>\\/"
-        # 2. 将 Lua AI 脚本 (llm_translator) 强行插入到处理列表的第 0 位之前
+        # 1. 扩充允许输入的字符集：保留雾凇默认（含大写与辅码引导符 `），再允许在拼音中直接输入指定标点
+        "speller/alphabet": "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`.,?'!:<>\\/"
+        # 2. 触发键处理器：截获 vv 的第二个 v，把触发词从编码区拿掉并武装 AI 翻译
+        "engine/processors/@before 0": lua_processor@llm_processor
+        # 3. 将 Lua AI 脚本 (llm_translator) 插入到翻译器列表的第 0 位之前
         "engine/translators/@before 0": lua_translator@llm_translator
-        # 3. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
+        # 4. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
         "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:<>/\\\\]*$"
       ```
+      > 旧版打过补丁的文件会原地补上第 2 行并把 alphabet 换成保留雾凇默认的版本
 
     - 如果fcitx5正在运行的话，重启以重新部署。
+
+    > 触发键的工作方式：按下 `vv` 的第二个 `v` 时，处理器把这两个 `v` 从编码区拿掉，只记住此刻的拼音，AI 候选排在第一位。编码区里始终是纯拼音，所以选候选 2、分段选词、用户词典学习都和平时一样，不会再把 `vv` 带到句尾。退格、选词、上屏都会解除这次触发，想对剩余部分再用 AI 就再按一次 `vv`。没有注册处理器的旧接法（拼音以 `vv` 结尾）仍然可用，但会有 `vv` 残留的问题，升级后请重新执行一次 `rime-llm-config init`。
     
 4. 配置大模型
 
@@ -100,16 +106,16 @@
 | Miyu | `miyu` | 交给 Miyu 自己的模型路由 |
 
 - 打开 `rime-llm-config` 时会自动探测 PATH 上有哪些命令，各生成一个 `[CLI]` 节点；模型列表能问命令的就问命令（缓存一天），在「供应商和模型」里照常选模型，在「激活配置」里选中即可。
-- 装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话，会顺带只读导入 Miyu 里配好的供应商，显示为 `[Miyu]` 节点（id 前缀 `miyu_`，列表里排在自己的节点和 `[CLI]` 节点之后），改了 Miyu 的配置下次打开自动同步；这类节点只能在这里改模型和思考强度。
-- CLI 节点的编辑表单里可以改可执行文件路径和思考强度（关闭 / 低 / 中 / 高，对应各家的 effort 参数）。
+- 装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话，会顺带只读导入 Miyu 里配好的供应商，显示为 `[Miyu]` 节点（id 前缀 `miyu_`，列表里排在自己的节点和 `[CLI]` 节点之后），改了 Miyu 的配置下次打开自动同步；这类节点只能在这里改模型和思考档位。Miyu 里 `$env:NAME` 形式和逗号分隔的多把 key 会被解析后取第一把；Miyu 里给每个模型选过的思考档位也会作为默认值带过来。
+- CLI 节点的编辑表单里可以改可执行文件路径；思考档位和 HTTP 节点一样，在模型列表上按 `t` 选（claude 五档、codex 五档、agy 只对 claude-* 模型开放三档）。
 - 每次请求是一次性的，不带会话、不开工具、不写磁盘。CLI 线比直连 HTTP 慢：实测 claude sonnet 约 3 秒，codex / agy / opencode 约 7~10 秒，超时可在「全局参数设置 → CLI 后端超时」调整（默认 60 秒）。
 - Lua 侧走 CLI 时是调用 `rime-llm-config ask` 完成请求的，`rime-llm-config ask "拼音"` 也可以在终端里直接用来排查问题；`rime-llm-config debug` 的日志同样会记录 CLI 线的请求。
 
 ## 编辑配置
 
-`rime-llm-config`是编辑配置的TUI工具。
+`rime-llm-config`是编辑配置的TUI工具。TUI 里每次保存都会顺手把 `config.lua` 导出一遍，HTTP 线（读 `config.lua`）和 CLI 线（读 `state.json`）用的提示词和词库因此始终一致。
 
-> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`
+> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。
 
 
 ![](pictures/TUI/mainmenu.png)
@@ -124,13 +130,13 @@
 
   ![](pictures/TUI/edit.png)
 
-  最左侧一列是供应商（同时也是配置），回车可以配置供应商的显示名称、api地址、api密钥等内容，部分模型支持开关思考模式。
+  最左侧一列是供应商（同时也是配置），按 `i` 可以配置供应商的显示名称、api地址、api密钥和协议。协议留 `自动` 时按 URL 判断是 OpenAI Chat 还是 Anthropic Messages，走不带 anthropic 字样的 Claude 中转时手动选 Anthropic 即可。
 
   > 显示名称指的是在输入法候选框里显示的名称
 
   ![](pictures/TUI/provider.png)
 
-  配置可用之后右侧会出现`可用模型`列表，回车确定此配置使用的模型。
+  配置可用之后右侧会出现`可用模型`列表，回车确定此配置使用的模型。会思考的模型后面带 `🧠`，在模型上按 `t` 选思考档位（关闭 / 开启 / low / medium / high / max 等，按模型分别记住）。档位表来自 [models.dev](https://models.dev) 的模型目录：本机装了 Miyu 就直接复用它的缓存，否则首次打开时自动下载并缓存一天，也可以用 `rime-llm-config catalog` 手动刷新；目录里没有的模型按厂商族（DeepSeek、Gemini、MiMo、智谱、OpenRouter、Anthropic）给出默认档位。各家的私有写法（`thinking.type`、`reasoning_effort`、`reasoning.effort`、`output_config.effort`、`deepseek-chat` 与 `deepseek-reasoner` 互换、Anthropic 思考时不传 temperature）在导出 `config.lua` 时解析成每个节点的 `request_extra`，Lua 侧不再识别厂商。`rime-llm-config status` 会把当前节点解析后的请求附加字段打印出来。
 
 - 全局参数配置
 
@@ -148,30 +154,35 @@
 
 ## 移除该功能
 
-1. 删除 `~/.local/share/fcitx5/rime/rime.lua` 中的这一行（如果文件里只有这一行，直接删文件）：
+1. 删除 `~/.local/share/fcitx5/rime/rime.lua` 中的这两行（如果文件里只有这两行，直接删文件）：
 
     ```
     llm_translator = require("llm_translator")
+    llm_processor = llm_translator.processor
     ```
 
-2. 删除 `~/.local/share/fcitx5/rime/rime_ice.custom.yaml` 中的三条 patch（如果文件是 init 新建的，直接删文件）：
+2. 删除 `~/.local/share/fcitx5/rime/rime_ice.custom.yaml` 中的四条 patch（如果文件是 init 新建的，直接删文件）：
 
     ```
-      # 1. 扩充允许输入的字符集：允许在拼音中直接输入指定的标点符号，阻止其直接上屏
-      "speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?'!:<>\\/"
-      # 2. 将 Lua AI 脚本 (llm_translator) 强行插入到处理列表的第 0 位之前
+      # 1. 扩充允许输入的字符集：保留雾凇默认（含大写与辅码引导符 `），再允许在拼音中直接输入指定标点
+      "speller/alphabet": "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`.,?'!:<>\\/"
+      # 2. 触发键处理器：截获 vv 的第二个 v，把触发词从编码区拿掉并武装 AI 翻译
+      "engine/processors/@before 0": lua_processor@llm_processor
+      # 3. 将 Lua AI 脚本 (llm_translator) 插入到翻译器列表的第 0 位之前
       "engine/translators/@before 0": lua_translator@llm_translator
-      # 3. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
+      # 4. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
       "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:<>/\\\\]*$"
     ```
 
-    > init 之前的原文件备份在 `~/.cache/rime-llm-translator-backup/`，直接覆盖回去也可以。
+    > init 之前的原文件备份在 `~/.cache/rime-llm-translator/backup/`，直接覆盖回去也可以。
 
 3. 移除缓存、配置和软件包：
 
     ```
-    gio trash ~/.config/rime-llm-translator ~/.cache/rime-llm-translator ~/.cache/rime-llm-translator-backup
+    gio trash ~/.config/rime-llm-translator ~/.cache/rime-llm-translator
     yay -Rns rime-llm-translator-git
     ```
+
+    > 调试日志在 `~/.cache/rime-llm-translator/debug.log`，请求时的临时文件在 `$XDG_RUNTIME_DIR/rime-llm-translator/`，都会随上面两个目录或重启一起消失。
 
 4. 重启 fcitx5（或在托盘菜单点「重新部署」）让 Rime 重新部署。

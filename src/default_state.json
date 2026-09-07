@@ -9,6 +9,7 @@
         },
         "anthropic": {
             "name": "Anthropic Claude",
+            "protocol": "anthropic",
             "api_url": "https://api.anthropic.com/v1/messages",
             "api_key": "",
             "model": ""

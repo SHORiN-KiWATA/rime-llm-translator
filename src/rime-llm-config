@@ -17,6 +17,7 @@ import datetime
 import subprocess
 import re
 import tempfile
+import time
 
 # ==========================================
 # 🌐 国际化与双语支持 (I18N)
@@ -73,7 +74,7 @@ I18N = {
         "cli_stat_state": "State file     :",
         "cli_stat_lua": "Lua target     :",
         "cli_err_cmd": "Unknown command: {}",
-        
+
         # TUI Main
         "tui_main_title": " RIME LLM CONFIG ",
         "tui_opt_switch": "Activate Profile (current: {})",
@@ -81,11 +82,10 @@ I18N = {
         "tui_opt_settings": "Global Parameters",
         "tui_opt_vocab": "Custom Vocab",
         "tui_opt_export": "Save & Exit",
-        
+
         # TUI Switch
         "tui_sw_title": " Select Profile ",
-        "tui_sw_err": "No fully configured profiles found.\nPlease edit API URL, Key and Select Model first.",
-        
+
         # TUI Settings
         "tui_st_title": " Global Parameters ",
         "tui_st_prompt": "Prompt",
@@ -95,7 +95,7 @@ I18N = {
         "tui_st_time": "Reply Timeout",
         "tui_st_thinking": "Thinking Mode",
         "tui_st_history_bytes": "Max Context Bytes",
-        
+
         # TUI Vocab
         "tui_vc_title": " Custom Vocab ",
         "tui_vc_opt_term": "Common En Terms",
@@ -111,12 +111,12 @@ I18N = {
         "tui_lbl_term": "Term",
         "tui_lbl_pinyin": "Pinyin",
         "tui_lbl_result": "Result",
-        
+
         # TUI Export
         "tui_exp_succ": " Success ",
         "tui_exp_err": " Error ",
         "tui_exp_msg": "Config saved to:\n{}\n\nPlease Deploy Rime!",
-        
+
         # TUI Forms & Buttons
         "tui_btn_save": "[ Save ]",
         "tui_btn_cancel": "[ Cancel ]",
@@ -130,7 +130,7 @@ I18N = {
         "tui_hint_form_edit": " [←/→] Edit Select/Cursor  [Enter/Esc] Done ",
         "tui_hint_textarea": "[Enter] Open Ext Editor (Vim)  [Esc/q] Cancel",
         "tui_placeholder_ta": "(Press Enter to open Vim/Nano)",
-        
+
         # TUI SearchModels
         "tui_sm_prov": " PROVIDERS ",
         "tui_sm_org": " ORG ",
@@ -150,6 +150,16 @@ I18N = {
         "tui_sm_lbl_url": "API URL",
         "tui_sm_lbl_key": "API Key",
         "tui_sm_set_succ": "✓ '{}' set as model for {}!"
+        ,"cli_help_ask": "  ask <text>       : One-shot query via the active profile (used by the Lua side for CLI backends).",
+        "cli_stat_proto": "Protocol       :",
+        "tui_st_cli_timeout": "CLI Backend Timeout (s)",
+        "tui_sm_lbl_binary": "Executable (binary)",
+        "tui_sm_lbl_effort": "Reasoning Effort",
+        "tui_sm_err_external": "This profile is auto-imported ({}); only the model can be changed here.",
+        "tui_sm_err_ext_del": "Auto-imported profiles come back on next launch; uninstall the CLI or disable it in Miyu instead.",
+        "tui_sm_tag_cli": "CLI",
+        "tui_sm_tag_miyu": "Miyu",
+        "tui_sw_err": "No fully configured profiles found.\nPlease edit API URL, Key and Select Model first (CLI backends only need a model)."
     },
     "zh": {
         # CLI
@@ -190,7 +200,7 @@ I18N = {
         "cli_stat_state": "JSON状态文件 :",
         "cli_stat_lua": "Lua 配置路径 :",
         "cli_err_cmd": "未知的命令: {}",
-        
+
         # TUI Main
         "tui_main_title": " RIME LLM 配置工具 ",
         "tui_opt_switch": "激活配置 (当前: {})",
@@ -198,11 +208,10 @@ I18N = {
         "tui_opt_settings": "全局参数设置",
         "tui_opt_vocab": "自定义词库",
         "tui_opt_export": "保存并退出",
-        
+
         # TUI Switch
         "tui_sw_title": " 选择配置 ",
-        "tui_sw_err": "未找到配置完整的节点。\n请先前往【编辑配置】填写 URL、密钥并设置模型。",
-        
+
         # TUI Settings
         "tui_st_title": " 全局参数设置 ",
         "tui_st_prompt": "提示词 (Prompt)",
@@ -228,12 +237,12 @@ I18N = {
         "tui_lbl_term": "名词内容",
         "tui_lbl_pinyin": "拼音字母",
         "tui_lbl_result": "实际输出结果",
-        
+
         # TUI Export
         "tui_exp_succ": " 成功 ",
         "tui_exp_err": " 错误 ",
         "tui_exp_msg": "配置已成功保存至:\n{}\n\n请重新部署(Deploy)您的 Rime 拼音！",
-        
+
         # TUI Forms & Buttons
         "tui_btn_save": "[ 保存 ]",
         "tui_btn_cancel": "[ 取消 ]",
@@ -247,7 +256,7 @@ I18N = {
         "tui_hint_form_edit": " [←/→]左右切换/移动光标  [Enter/Esc]完成 ",
         "tui_hint_textarea": "[Enter] 打开外部编辑器(Vim)  [Esc/q] 取消",
         "tui_placeholder_ta": "(请按 Enter 调用 Vim/Nano 进行编辑)",
-        
+
         # TUI SearchModels
         "tui_sm_prov": " 供应商 ",
         "tui_sm_org": " 组织 ",
@@ -267,6 +276,16 @@ I18N = {
         "tui_sm_lbl_url": "API 地址",
         "tui_sm_lbl_key": "API 密钥",
         "tui_sm_set_succ": "✓ 已将 '{}' 设为 {} 的首选模型！"
+        ,"cli_help_ask": "  ask <文本>       : 用当前节点做一次性问答(Lua 侧走本机 CLI 后端时调用)",
+        "cli_stat_proto": "协议         :",
+        "tui_st_cli_timeout": "CLI 后端超时 (秒)",
+        "tui_sm_lbl_binary": "可执行文件 (binary)",
+        "tui_sm_lbl_effort": "思考强度 (Effort)",
+        "tui_sm_err_external": "该节点为自动导入({})，此处只能改模型。",
+        "tui_sm_err_ext_del": "自动导入的节点下次启动会回来；请卸载对应 CLI 或在 Miyu 里禁用它。",
+        "tui_sm_tag_cli": "CLI",
+        "tui_sm_tag_miyu": "Miyu",
+        "tui_sw_err": "未找到配置完整的节点。\n请先前往【编辑配置】填写 URL、密钥并设置模型（本机 CLI 节点只需设模型）。"
     }
 }
 
@@ -279,9 +298,449 @@ def t(key, *args):
 # 📂 路径与状态管理
 # ==========================================
 SYSTEM_DEFAULT_CONFIG = "/usr/share/rime-llm-translator/default_state.json"
-CONFIG_DIR = os.path.expanduser("~/.config/rime-llm-translator")
+CONFIG_DIR = os.environ.get("RIME_LLM_CONFIG_DIR") or os.path.expanduser("~/.config/rime-llm-translator")
 STATE_FILE = os.path.join(CONFIG_DIR, "state.json")
 LUA_FILE = os.path.join(CONFIG_DIR, "config.lua")
+
+# ==========================================
+# 🖥️ 本机 CLI 后端层 (与 wl-wordlens / shorin-pac 同构)
+# ==========================================
+# profile 的 protocol 字段：
+#   openai        (默认，留空亦是) OpenAI Chat / Anthropic Messages 等 HTTP 端点，由 Lua 侧 curl 直连
+#   claude-code   本机 claude CLI      codex        本机 codex CLI
+#   antigravity   本机 agy CLI         opencode     本机 opencode CLI
+#   miyu          本机 miyu（交给 Miyu 自己的模型路由）
+# CLI 类 profile 由 Lua 侧调用 `rime-llm-config ask` 完成一次性问答。
+# 供应商来源：用户自己的 state.json、PATH 上探测到的 CLI（source=builtin）、
+# Miyu 的 ~/.miyu/config/config.jsonc（只读导入，id 前缀 miyu_，source=miyu）。
+
+CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "rime-llm-translator")
+MODELS_CACHE_DIR = os.path.join(CACHE_DIR, "models")
+MIYU_HOME = os.environ.get("MIYU_HOME", os.path.expanduser("~/.miyu"))
+MIYU_CONFIG = os.path.join(MIYU_HOME, "config", "config.jsonc")
+DEFAULT_CLI_TIMEOUT = 60.0
+EFFORT_LEVELS = ["", "low", "medium", "high"]
+
+CLI_BACKENDS = {
+    "claude-code": {
+        "id": "claude_code", "name": "Claude Code CLI", "binary": "claude",
+        "models": ["sonnet", "opus", "haiku", "fable"], "default": "sonnet",
+    },
+    "codex": {
+        "id": "codex", "name": "Codex CLI", "binary": "codex",
+        "models": ["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gpt-5.4-mini"], "default": "gpt-5.6-terra",
+    },
+    "antigravity": {
+        "id": "antigravity", "name": "Antigravity CLI (agy)", "binary": "agy",
+        "models": ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.1-pro-high"],
+        "default": "gemini-3.8-flash-low",
+    },
+    "opencode": {
+        "id": "opencode_cli", "name": "opencode CLI", "binary": "opencode",
+        "models": ["opencode/big-pickle", "opencode/mimo-v2.5-free"], "default": "opencode/big-pickle",
+    },
+    "miyu": {
+        "id": "miyu", "name": "Miyu (uses Miyu current model)", "binary": "miyu",
+        "models": ["auto"], "default": "auto",
+    },
+}
+PROTOCOL_ALIASES = {
+    "": "openai", "auto": "openai", "openai": "openai", "openai-chat": "openai",
+    "anthropic": "openai", "anthropic-messages": "openai",  # Lua 侧按 URL 自动识别 Anthropic 协议
+    "claude-code": "claude-code", "claude-code-cli": "claude-code",
+    "codex": "codex", "codex-cli": "codex",
+    "antigravity": "antigravity", "antigravity-cli": "antigravity", "agy": "antigravity",
+    "opencode": "opencode", "miyu": "miyu",
+}
+
+
+def profile_protocol(profile):
+    return PROTOCOL_ALIASES.get(str(profile.get("protocol", "")).strip().lower(), "openai")
+
+
+def is_cli_protocol(protocol):
+    return protocol in CLI_BACKENDS
+
+
+def profile_binary(profile):
+    protocol = profile_protocol(profile)
+    return str(profile.get("binary", "")).strip() or CLI_BACKENDS.get(protocol, {}).get("binary", "")
+
+
+def profile_tag(profile):
+    if profile.get("source") == "miyu":
+        return t("tui_sm_tag_miyu")
+    if is_cli_protocol(profile_protocol(profile)):
+        return t("tui_sm_tag_cli")
+    return ""
+
+
+def profile_is_usable(profile):
+    """能否被设为激活节点：CLI 节点只要有模型，HTTP 节点要 URL + Key + 模型。"""
+    if not profile.get("model"):
+        return False
+    if is_cli_protocol(profile_protocol(profile)):
+        return True
+    return bool(profile.get("api_url") and profile.get("api_key"))
+
+
+def strip_jsonc(text):
+    """去掉 // 与 /* */ 注释（跳过字符串内部），Miyu 的 config.jsonc 用。"""
+    out = []
+    i, n = 0, len(text)
+    in_str = False
+    while i < n:
+        c = text[i]
+        if in_str:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if c == '"':
+                in_str = False
+            i += 1
+            continue
+        if c == '"':
+            in_str = True
+            out.append(c)
+            i += 1
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def cli_model_catalog(protocol, binary=""):
+    """本机 CLI 的模型清单：能问命令的就问（缓存一天），否则用预置列表。"""
+    backend = CLI_BACKENDS.get(protocol)
+    if not backend:
+        return []
+    binary = binary or backend["binary"]
+    cache_file = os.path.join(MODELS_CACHE_DIR, f"{protocol}.json")
+    try:
+        if time.time() - os.path.getmtime(cache_file) < 86400:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            if isinstance(cached, list) and cached:
+                return cached
+    except (OSError, ValueError):
+        pass
+    models = []
+    try:
+        if protocol == "codex":
+            out = subprocess.run([binary, "debug", "models"], capture_output=True, text=True, timeout=20).stdout
+            models = [m.get("slug", "") for m in json.loads(out).get("models", [])
+                      if isinstance(m, dict) and m.get("visibility") != "hide" and m.get("slug")]
+        elif protocol == "antigravity":
+            out = subprocess.run([binary, "models"], capture_output=True, text=True, timeout=20).stdout
+            models = [line.split("\t", 1)[0].strip() for line in out.splitlines()
+                      if line.strip() and not line.startswith("Fetching")]
+        elif protocol == "opencode":
+            out = subprocess.run([binary, "models"], capture_output=True, text=True, timeout=20).stdout
+            models = [line.split()[0] for line in out.splitlines() if line.strip()]
+    except Exception:
+        models = []
+    if models:
+        try:
+            os.makedirs(MODELS_CACHE_DIR, exist_ok=True)
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(models, f)
+        except OSError:
+            pass
+        return models
+    return list(backend["models"])
+
+
+def builtin_cli_profiles():
+    """PATH 上找得到的 CLI 各生成一个 profile。"""
+    profiles = {}
+    for protocol, backend in CLI_BACKENDS.items():
+        if not shutil.which(backend["binary"]):
+            continue
+        profiles[backend["id"]] = {
+            "name": backend["name"], "protocol": protocol, "api_url": "", "api_key": "",
+            "binary": backend["binary"], "model": backend["default"], "effort": "", "source": "builtin",
+        }
+    return profiles
+
+
+def miyu_profiles():
+    """只读导入 Miyu 的供应商：id 前缀 miyu_；CLI 中转线映射到同名协议，HTTP 线要有 key（或 opencode zen 公共线）。"""
+    try:
+        with open(MIYU_CONFIG, "r", encoding="utf-8") as f:
+            cfg = json.loads(strip_jsonc(f.read()))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(cfg, dict):
+        return {}
+    plugins = cfg.get("plugins") if isinstance(cfg.get("plugins"), dict) else {}
+    profiles = {}
+    for prov in cfg.get("providers") or []:
+        if not isinstance(prov, dict) or prov.get("enabled", True) is False:
+            continue
+        raw_id = str(prov.get("id", "")).strip()
+        if not raw_id:
+            continue
+        raw_protocol = str(prov.get("protocol", "")).strip().lower()
+        base_url = str(prov.get("base_url", "")).strip().rstrip("/")
+        protocol = PROTOCOL_ALIASES.get(raw_protocol)
+        if protocol is None:
+            continue  # openai-responses 等不支持
+        api_key = prov.get("api_key") or ""
+        models = [str(m).strip() for m in (prov.get("models") or []) if str(m).strip()]
+        default_model = str(prov.get("default_model") or (models[0] if models else "")).strip()
+        binary = ""
+        if is_cli_protocol(protocol):
+            plugin_key = {"claude-code": "claude_code", "antigravity": "antigravity", "codex": "codex"}.get(protocol)
+            if plugin_key and isinstance(plugins.get(plugin_key), dict):
+                binary = str(plugins[plugin_key].get("binary", "")).strip()
+            if not shutil.which(binary or CLI_BACKENDS[protocol]["binary"]):
+                continue
+            api_url = ""
+            default_model = default_model or CLI_BACKENDS[protocol]["default"]
+        else:
+            if not api_key or not base_url:
+                continue
+            is_anthropic = raw_protocol.startswith("anthropic") or "anthropic" in base_url.lower()
+            if is_anthropic:
+                api_url = base_url + ("/messages" if base_url.lower().endswith("/v1") else "/v1/messages")
+            elif "generativelanguage" in base_url.lower():
+                api_url = base_url + ("/openai/chat/completions" if not base_url.lower().endswith("/openai") else "/chat/completions")
+            else:
+                api_url = base_url if base_url.lower().endswith("/chat/completions") else base_url + "/chat/completions"
+        pid = "miyu_" + re.sub(r"[^a-zA-Z0-9_]", "_", raw_id)
+        profiles[pid] = {
+            "name": f"{prov.get('display_name') or raw_id} (Miyu)", "protocol": protocol,
+            "api_url": api_url, "api_key": api_key, "binary": binary,
+            "model": default_model, "effort": "", "source": "miyu",
+        }
+    return profiles
+
+
+def sync_external_profiles(state):
+    """每次加载时刷新内置 CLI 与 Miyu 镜像：元数据以外部为准，用户选过的 model / effort / thinking_mode 保留。"""
+    profiles = state.setdefault("profiles", {})
+    external = {}
+    external.update(builtin_cli_profiles())
+    external.update(miyu_profiles())
+    for pid, fresh in external.items():
+        old = profiles.get(pid)
+        if isinstance(old, dict) and old.get("source") == fresh["source"]:
+            for keep in ("model", "effort", "thinking_mode"):
+                if old.get(keep):
+                    fresh[keep] = old[keep]
+        elif isinstance(old, dict):
+            continue  # 用户自己的同名节点优先，不覆盖
+        profiles[pid] = fresh
+    for pid in list(profiles):
+        prof = profiles[pid]
+        if isinstance(prof, dict) and prof.get("source") in ("builtin", "miyu") and pid not in external:
+            del profiles[pid]
+    if state.get("active_profile") not in profiles:
+        state["active_profile"] = next((k for k, v in profiles.items() if isinstance(v, dict) and profile_is_usable(v)), "")
+    return state
+
+
+def compose_system_prompt(settings, vocab):
+    """系统提示词 + 自定义词库（与 Lua 侧 HTTP 路径拼法一致，格式由 export_to_lua 的 vocab_text 定义）。"""
+    return str(settings.get("prompt", "")) + vocab_block(vocab)
+
+
+def vocab_block(vocab):
+    terms = [str(x) for x in (vocab or {}).get("terms", []) if str(x).strip()]
+    mappings = {str(k): str(v) for k, v in ((vocab or {}).get("mappings") or {}).items() if str(k).strip()}
+    if not terms and not mappings:
+        return ""
+    lines = ["", "# 用户词库"]
+    if terms:
+        lines.append("以下是用户常用的英文词/网络黑话，拼音中出现时按原样保留，不要当拼音切分：")
+        lines.append("、".join(terms))
+    if mappings:
+        lines.append("以下是用户约定的简拼/缩写映射，遇到时优先按映射输出：")
+        lines.extend(f"{k}={v}" for k, v in mappings.items())
+    return "\n".join(lines)
+
+
+def _run_cli(argv, stdin_text=None, cwd=None, timeout=DEFAULT_CLI_TIMEOUT, env=None):
+    """跑一个 CLI 子进程，整组进程超时即杀；返回 (returncode, stdout, stderr_tail)。"""
+    proc = subprocess.Popen(
+        argv, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, encoding="utf-8", errors="replace", start_new_session=True,
+    )
+    try:
+        out, err = proc.communicate(stdin_text or "", timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, 9)
+        except OSError:
+            pass
+        proc.wait()
+        raise RuntimeError(f"timed out after {timeout:g}s")
+    return proc.returncode, out, err.strip()[-400:]
+
+
+def _clean_answer(text):
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)
+    text = re.sub(r"<think>.*", "", text, flags=re.S)
+    return text.strip()
+
+
+def cli_complete(profile, system_prompt, user_text, timeout=DEFAULT_CLI_TIMEOUT):
+    """本机 CLI 后端一次性问答，返回正文；失败抛 RuntimeError。"""
+    protocol = profile_protocol(profile)
+    model = str(profile.get("model", "")).strip() or CLI_BACKENDS.get(protocol, {}).get("default", "")
+    binary = profile_binary(profile)
+    effort = str(profile.get("effort", "")).strip().lower()
+    if effort not in EFFORT_LEVELS:
+        effort = ""
+    if not shutil.which(binary):
+        raise RuntimeError(f"command not found: {binary}")
+    with tempfile.TemporaryDirectory(prefix="rime-llm-") as workdir:
+        if protocol == "claude-code":
+            argv = [binary, "-p", "--output-format", "text", "--no-session-persistence", "--strict-mcp-config",
+                    "--tools", "", "--model", model, "--system-prompt", system_prompt]
+            if effort:
+                argv += ["--effort", effort]
+            rc, out, err = _run_cli(argv, user_text, cwd=workdir, timeout=timeout)
+            text = _clean_answer(out)
+            if rc != 0 or not text:
+                raise RuntimeError(err or f"claude exited with {rc}")
+            return text
+
+        if protocol == "codex":
+            sys_file = os.path.join(workdir, "instructions.md")
+            with open(sys_file, "w", encoding="utf-8") as f:
+                f.write(system_prompt)
+            out_file = os.path.join(workdir, "answer.txt")
+            argv = [binary, "exec", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
+                    "--color", "never", "-s", "read-only", "-C", workdir, "-m", model,
+                    "-c", f'model_instructions_file="{sys_file}"', "-c", "project_doc_max_bytes=0",
+                    "-o", out_file, "-"]
+            if effort:
+                argv += ["-c", f'model_reasoning_effort="{effort}"']
+            rc, _, err = _run_cli(argv, user_text, cwd=workdir, timeout=timeout)
+            text = ""
+            try:
+                with open(out_file, "r", encoding="utf-8") as f:
+                    text = _clean_answer(f.read())
+            except OSError:
+                pass
+            if not text:
+                raise RuntimeError(err or f"codex exited with {rc}")
+            return text
+
+        combined = f"{system_prompt}\n\n---\n\n{user_text}"
+        if protocol == "antigravity":
+            # agy 的 --print 不读 stdin 文本，只能走 stream-json：一行 user 消息进，事件流出，取 result 帧
+            argv = [binary, "--print=", "--input-format", "stream-json", "--output-format", "stream-json",
+                    "--model", model, "--sandbox", "--add-dir", workdir, "--print-timeout", f"{int(timeout)}s"]
+            if effort:
+                argv += ["--effort", effort]
+            payload = json.dumps({"event": "user", "message": {"content": [{"type": "text", "text": combined}]}},
+                                 ensure_ascii=False) + "\n"
+            rc, out, err = _run_cli(argv, payload, cwd=workdir, timeout=timeout)
+            final, deltas = {}, []
+            for line in out.splitlines():
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if event.get("event") == "result":
+                    final.update(event.get("result") or {})
+                elif event.get("event") == "step_update":
+                    step = event.get("step_update") or {}
+                    delta = (step.get("agent_response") or {}).get("text_delta") or step.get("text_delta")
+                    if delta and step.get("step_type") in (None, "agent_response"):
+                        deltas.append(delta)
+            text = _clean_answer(str(final.get("response") or "".join(deltas)))
+            if final.get("status") not in (None, "SUCCESS") or not text:
+                raise RuntimeError(str(final.get("error") or err or f"agy exited with {rc}"))
+            return text
+
+        if protocol == "opencode":
+            env = dict(os.environ, OPENCODE_DISABLE_PROJECT_CONFIG="1", OPENCODE_DISABLE_CLAUDE_CODE="1",
+                       OPENCODE_DISABLE_LSP_DOWNLOAD="1")
+            argv = [binary, "run", "--pure", "-m", model, "--dir", workdir]
+            rc, out, err = _run_cli(argv, combined, cwd=workdir, timeout=timeout, env=env)
+            text = _clean_answer(out)
+            if rc != 0 or not text:
+                raise RuntimeError(err or f"opencode exited with {rc}")
+            return text
+
+        if protocol == "miyu":
+            rc, out, err = _run_cli([binary, "--stdout", "ask"], combined, cwd=workdir, timeout=timeout)
+            text = _clean_answer(out)
+            if rc != 0 or not text:
+                raise RuntimeError(err or f"miyu exited with {rc}")
+            return text
+
+    raise RuntimeError(f"unsupported protocol: {protocol}")
+
+
+def run_ask(argv):
+    """`rime-llm-config ask [--profile ID] [--history TEXT] <text>`：一次性问答，正文写 stdout；
+    失败时 stdout 首行为 `ERR: ...` 并以 1 退出（Lua 侧靠前缀分辨）。"""
+    profile_id, history, text = "", "", []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--profile" and i + 1 < len(argv):
+            profile_id = argv[i + 1]; i += 2
+        elif a == "--history" and i + 1 < len(argv):
+            history = argv[i + 1]; i += 2
+        else:
+            text.append(a); i += 1
+    user_text = " ".join(text).strip()
+    if not user_text and not sys.stdin.isatty():
+        user_text = sys.stdin.read().strip()
+    if not user_text:
+        print("ERR: empty input"); return 1
+    state = load_state()
+    profile_id = profile_id or state.get("active_profile", "")
+    profile = state.get("profiles", {}).get(profile_id)
+    if not isinstance(profile, dict):
+        print(f"ERR: profile not found: {profile_id}"); return 1
+    if not is_cli_protocol(profile_protocol(profile)):
+        print(f"ERR: profile '{profile_id}' is not a CLI backend"); return 1
+    settings = state.get("settings", {})
+    system_prompt = compose_system_prompt(settings, state.get("vocab", {}))
+    if history:
+        user_text = f"【历史输入】：{history}\n【当前用户输入（如果由call开头说明是指令）】：{user_text}"
+    try:
+        timeout = float(settings.get("cli_timeout", DEFAULT_CLI_TIMEOUT))
+    except (TypeError, ValueError):
+        timeout = DEFAULT_CLI_TIMEOUT
+    t0 = time.time()
+    try:
+        answer = cli_complete(profile, system_prompt, user_text, timeout=timeout)
+    except Exception as e:
+        _debug_log(profile, user_text, f"ERR: {e}", time.time() - t0)
+        print(f"ERR: {e}"); return 1
+    _debug_log(profile, user_text, answer, time.time() - t0)
+    sys.stdout.write(answer)
+    return 0
+
+
+def _debug_log(profile, user_text, answer, elapsed):
+    """与 Lua 侧共用 /tmp/.rime_llm_debug_active 触发器与 /tmp/rime_llm_debug.log。"""
+    if not os.path.exists("/tmp/.rime_llm_debug_active"):
+        return
+    try:
+        with open("/tmp/rime_llm_debug.log", "a", encoding="utf-8") as f:
+            f.write("========== " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========\n")
+            f.write(f"【CLI 节点】 {profile.get('name', '?')} ({profile_protocol(profile)} / {profile.get('model', '')}) {elapsed:.2f}s\n")
+            f.write("【发出的文本】\n" + user_text + "\n\n【收到的返回】\n" + answer + "\n")
+            f.write("==================================================\n\n")
+    except OSError:
+        pass
+
 
 def get_default_state():
     if os.path.exists(SYSTEM_DEFAULT_CONFIG):
@@ -311,7 +770,7 @@ def get_default_state():
 
 def load_state():
     default_state = get_default_state()
-    if not os.path.exists(STATE_FILE): return default_state
+    if not os.path.exists(STATE_FILE): return sync_external_profiles(default_state)
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -320,8 +779,9 @@ def load_state():
             for pk, pv in default_state["profiles"].items():
                 if pk not in data["profiles"]: data["profiles"][pk] = pv
             if "max_time" not in data["settings"]: data["settings"]["max_time"] = 30.0
-            return data
-    except Exception: return default_state
+            if "cli_timeout" not in data["settings"]: data["settings"]["cli_timeout"] = DEFAULT_CLI_TIMEOUT
+            return sync_external_profiles(data)
+    except Exception: return sync_external_profiles(default_state)
 
 def save_state(state):
     os.makedirs(CONFIG_DIR, exist_ok=True)
@@ -343,12 +803,15 @@ def export_to_lua(state):
             api_key = "{p.get('api_key', '')}",
             model = "{p.get('model', '')}",
             thinking_mode = "{p.get('thinking_mode', '')}",
+            protocol = "{profile_protocol(p)}",
+            binary = "{profile_binary(p) if is_cli_protocol(profile_protocol(p)) else ''}",
         }},"""
 
     settings = state["settings"]
     prompt_text = settings.get('prompt', '')
     prompt_lua = prompt_text.replace(']=]', ']=].."]=]"..[=[')
-    
+    vocab_lua = vocab_block(state.get("vocab", {})).replace(']=]', ']=].."]=]"..[=[')
+
     lua_code = f"""-- =========================================================
 -- 文件名：config.lua
 -- 存放位置：~/.config/rime-llm-translator/
@@ -366,6 +829,9 @@ return {{
     connect_timeout = {settings.get('connect_timeout', 2.0)}, 
     max_time = {settings.get('max_time', 30.0)},
     max_history_bytes = {settings.get('max_history_bytes', 240)},
+    cli_timeout = {settings.get('cli_timeout', DEFAULT_CLI_TIMEOUT)},
+    config_tool = "{os.path.realpath(sys.argv[0])}",
+    vocab_prompt = [=[{vocab_lua}]=],
     vocab_text = [[{vocab_str}    ]]
 }}
 """
@@ -416,7 +882,7 @@ def restart_fcitx5():
 def print_tutorial():
     state = load_state()
     trigger = state.get("settings", {}).get("ai_trigger", "v")
-    
+
     print(f"\n{C_CYN}{C_BLD}======================================================================={C_RES}")
     print(f"{C_GRN}{C_BLD}  {t('cli_tut_title')}{C_RES}")
     print(f"{C_CYN}{C_BLD}======================================================================={C_RES}")
@@ -433,7 +899,7 @@ def init_rime_config():
     if not os.path.exists(rime_dir):
         print(f"{L_WARN} " + t("cli_init_mkdir", rime_dir))
         os.makedirs(rime_dir, exist_ok=True)
-    
+
     if not os.path.exists(STATE_FILE) or not os.path.exists(LUA_FILE):
         print(f"{L_INFO} " + t("cli_init_gen_config"))
         state = load_state() 
@@ -456,7 +922,7 @@ def init_rime_config():
 
     ice_installed = os.path.exists("/usr/share/rime-data/rime_ice.schema.yaml") or \
                     os.path.exists(os.path.join(rime_dir, "rime_ice.schema.yaml"))
-    
+
     if ice_installed:
         print(f"{L_INFO} " + t("cli_init_ice_det"))
         custom_yaml = os.path.join(rime_dir, "rime_ice.custom.yaml")
@@ -484,7 +950,7 @@ def init_rime_config():
             print(f"{L_OK} " + t("cli_init_new_yaml"))
     else:
         print(f"{L_WARN} " + t("cli_init_no_ice"))
-        
+
     restart_fcitx5()
     print_tutorial()
 
@@ -521,6 +987,7 @@ def print_help():
     print(t("cli_help_sync"))
     print(t("cli_help_stat"))
     print(t("cli_help_debug"))
+    print(t("cli_help_ask"))
     print(t("cli_help_h") + "\n")
 
 def cli_handler():
@@ -531,6 +998,8 @@ def cli_handler():
         elif cmd == "debug":   
             run_debug()       
             return True      
+        elif cmd == "ask":
+            sys.exit(run_ask(sys.argv[2:]))
         elif cmd == "sync":
             state = load_state(); out = export_to_lua(state)
             print(f"{L_OK} " + t("cli_sync_ok", out))
@@ -541,9 +1010,10 @@ def cli_handler():
             p = state["profiles"].get(active, {})
             print(f"{t('cli_stat_prof')} {active} ({p.get('name', 'N/A')})")
             print(f"{t('cli_stat_model')} {p.get('model', 'None')}")
+            print(f"{t('cli_stat_proto')} {profile_protocol(p)}" + (f" ({profile_binary(p)})" if is_cli_protocol(profile_protocol(p)) else ""))
             print(f"{t('cli_stat_state')} {STATE_FILE}")
             print(f"{t('cli_stat_lua')} {LUA_FILE}")
-            
+
             # --- 新增：打印所有全局参数 ---
             s = state.get("settings", {})
             print(f"\n{C_CYN}{C_BLD}[ {t('tui_opt_settings')} ]{C_RES}")
@@ -552,7 +1022,7 @@ def cli_handler():
             print(f"  {pad_str(t('tui_st_temp'), 25)}: {s.get('temperature', 0.1)}")
             print(f"  {pad_str(t('tui_st_time'), 25)}: {s.get('max_time', 30.0)}")
             print(f"  {pad_str(t('tui_st_history_bytes'), 25)}: {s.get('max_history_bytes', 240)}")
-            
+
             prompt = s.get("prompt", "None")
             print(f"\n{C_CYN}{C_BLD}[ {t('tui_st_prompt')} ]{C_RES}")
             print(f"{C_GRY}{prompt}{C_RES}\n")
@@ -609,7 +1079,7 @@ def msgbox(stdscr, title, text):
     w = min(sw - 4, max(40, max((str_width(l) for l in lines), default=0) + 4))
     h = min(sh - 4, len(lines) + 4)
     y, x = (sh - h) // 2, (sw - w) // 2
-    
+
     stdscr.erase()
     draw_box(stdscr, y, x, h, w, title)
     for i, l in enumerate(lines):
@@ -626,33 +1096,33 @@ def menu_dialog(stdscr, title, options, default_idx=0, hint=None, allow_delete=F
     if allow_search: hint += t('tui_hint_search')
     stdscr.timeout(-1)
     sh, sw = stdscr.getmaxyx()
-    
+
     h = min(sh - 4, len(options) + 4)
     h = max(h, 6)
     w = min(sw - 4, max(40, max((str_width(o[0]) for o in options), default=0) + 10))
     y, x = (sh - h) // 2, (sw - w) // 2
-    
+
     sel = default_idx
     filter_str = ""
     filter_mode = False
-    
+
     while True:
         stdscr.erase()
         draw_box(stdscr, y, x, h, w, title)
-        
+
         if filter_str:
             filtered_opts = [o for o in options if filter_str.lower() in o[0].lower()]
         else:
             filtered_opts = options
-            
+
         sel = max(0, min(sel, max(0, len(filtered_opts) - 1)))
-        
+
         current_hint = t('tui_sm_srch', filter_str) if filter_mode else f" {hint} "
         _safe_addstr(stdscr, y + h - 1, x + 2, current_hint, curses.color_pair(C_TITLE) | (curses.A_BOLD if filter_mode else 0))
-        
+
         list_h = h - 2
         start_idx = max(0, min(sel - list_h // 2, len(filtered_opts) - list_h))
-        
+
         if not filtered_opts:
             _safe_addstr(stdscr, y + 1, x + 2, pad_str(t('tui_menu_no_match'), w - 4), curses.color_pair(C_MAIN))
         else:
@@ -660,21 +1130,21 @@ def menu_dialog(stdscr, title, options, default_idx=0, hint=None, allow_delete=F
                 idx = start_idx + i
                 if idx >= len(filtered_opts): break
                 text = filtered_opts[idx][0]
-                
+
                 disp_w, vis_str = 0, ""
                 for ch in text:
                     cw = str_width(ch)
                     if disp_w + cw > w - 4: break
                     vis_str += ch; disp_w += cw
-                    
+
                 attr = curses.color_pair(C_HL) if idx == sel else curses.color_pair(C_MAIN)
                 _safe_addstr(stdscr, y + 1 + i, x + 2, pad_str(vis_str, w - 4), attr)
-            
+
         stdscr.refresh()
         try: k = stdscr.get_wch()
         except curses.error: continue
         code, char = (k, "") if isinstance(k, int) else (ord(k), k)
-        
+
         if filter_mode:
             if code in (27, curses.KEY_F3): 
                 filter_mode = False
@@ -688,7 +1158,7 @@ def menu_dialog(stdscr, title, options, default_idx=0, hint=None, allow_delete=F
             elif char.isprintable():
                 filter_str += char
             continue
-            
+
         if code in (27, ord('q'), ord('Q')): return ('QUIT', None) if allow_delete else None
         elif code in (curses.KEY_UP, ord('k')): sel = max(0, sel - 1)
         elif code in (curses.KEY_DOWN, ord('j')): sel = min(len(filtered_opts) - 1, sel + 1)
@@ -707,38 +1177,38 @@ def form_dialog(stdscr, title, fields, show_delete=False):
     h = min(sh - 2, len(fields) * 2 + 6)
     w = min(sw - 2, 80)
     y, x = (sh - h) // 2, (sw - w) // 2
-    
+
     sel = 0
     mode = "NAV" 
     btn_save_idx = len(fields)
     btn_cancel_idx = len(fields) + 1
     btn_del_idx = len(fields) + 2 if show_delete else -1
     max_sel = len(fields) + (2 if show_delete else 1)
-    
+
     cursors = [len(str(f["value"])) if f.get("type") != "select" else 0 for f in fields]
     scrolls = [0 for _ in fields]
 
     while True:
         stdscr.erase()
         draw_box(stdscr, y, x, h, w, title)
-        
+
         hint = t('tui_hint_form_nav') if mode == "NAV" else t('tui_hint_form_edit')
         _safe_addstr(stdscr, y + h - 1, x + 2, hint, curses.color_pair(C_TITLE))
-        
+
         for i, f in enumerate(fields):
             fy = y + 2 + i * 2
             _safe_addstr(stdscr, fy, x + 2, f["label"], curses.color_pair(C_TITLE))
-            
+
             val = str(f["value"])
             field_w = w - 4 - str_width(f["label"]) - 2
             fx = x + 4 + str_width(f["label"])
             attr = curses.color_pair(C_HL) if (sel == i and mode == "NAV") else curses.A_UNDERLINE
-            
+
             if f.get("type") == "textarea":
                 vis = t('tui_placeholder_ta') if sel == i else truncate_str(val.replace('\n', ' '), field_w)
                 _safe_addstr(stdscr, fy, fx, pad_str(vis, field_w), attr)
                 continue
-                
+
             if f.get("type") == "select":
                 vis = f" {val} ▾" if sel == i else f" {val}"
                 _safe_addstr(stdscr, fy, fx, pad_str(vis, field_w), attr)
@@ -747,21 +1217,21 @@ def form_dialog(stdscr, title, fields, show_delete=False):
             disp_val = val + " "
             if cursors[i] < scrolls[i]: scrolls[i] = cursors[i]
             elif cursors[i] >= scrolls[i] + field_w: scrolls[i] = cursors[i] - field_w + 1
-            
+
             vis = disp_val[scrolls[i]:scrolls[i]+field_w]
             cursor_rel = cursors[i] - scrolls[i]
-            
+
             left_str = vis[:cursor_rel]
             cursor_char = vis[cursor_rel] if cursor_rel < len(vis) else " "
             right_str = vis[cursor_rel+1:]
-            
+
             _safe_addstr(stdscr, fy, fx, left_str, attr)
             if sel == i and mode == "EDIT":
                 _safe_addstr(stdscr, fy, fx + str_width(left_str), cursor_char, curses.A_REVERSE)
             else:
                 _safe_addstr(stdscr, fy, fx + str_width(left_str), cursor_char, attr)
             _safe_addstr(stdscr, fy, fx + str_width(left_str) + str_width(cursor_char), right_str, attr)
-            
+
             filled = str_width(left_str) + str_width(cursor_char) + str_width(right_str)
             if filled < field_w:
                 _safe_addstr(stdscr, fy, fx + filled, " " * (field_w - filled), attr)
@@ -801,7 +1271,7 @@ def form_dialog(stdscr, title, fields, show_delete=False):
                         with tempfile.NamedTemporaryFile(suffix=".txt", mode="w+", delete=False, encoding="utf-8") as tf:
                             tf.write(fields[sel]["value"])
                             tf_path = tf.name
-                        
+
                         curses.endwin()
                         try:
                             subprocess.run([editor, tf_path])
@@ -810,7 +1280,7 @@ def form_dialog(stdscr, title, fields, show_delete=False):
                             except: pass
                         stdscr.clear()
                         stdscr.refresh()
-                        
+
                         try:
                             with open(tf_path, "r", encoding="utf-8") as f:
                                 fields[sel]["value"] = f.read().strip()
@@ -828,7 +1298,7 @@ def form_dialog(stdscr, title, fields, show_delete=False):
         else:
             current_val = str(fields[sel]["value"])
             c = cursors[sel]
-            
+
             if code in (27, 10, 13): mode = "NAV" 
             elif code == curses.KEY_LEFT: cursors[sel] = max(0, c - 1)
             elif code == curses.KEY_RIGHT: cursors[sel] = min(len(current_val), c + 1)
@@ -875,7 +1345,7 @@ def normalize_api_url(url):
         if url_lower.endswith("/api/tags"): url = url[:-9]
         elif url_lower.endswith("/v1/models"): url = url[:-10]
         elif url_lower.endswith("/models"): url = url[:-7]
-        
+
         if not url_lower.endswith("/chat/completions"):
             if url_lower.endswith("/v1"): return url + "/chat/completions"
             elif url_lower.endswith("/api"): return url + "/chat"
@@ -895,7 +1365,9 @@ def normalize_api_url(url):
 
     return url
 
-def fetch_models(api_url, api_key):
+def fetch_models(api_url, api_key, profile=None):
+    if profile is not None and is_cli_protocol(profile_protocol(profile)):
+        return cli_model_catalog(profile_protocol(profile), profile_binary(profile)), None
     url = api_url
     is_anthropic = "anthropic" in url or "/messages" in url
 
@@ -911,7 +1383,7 @@ def fetch_models(api_url, api_key):
         if not url.endswith("/models") and not url.endswith("/tags"): url = url.rstrip("/") + "/models"
 
     headers = {"User-Agent": "rime-llm", "Accept": "application/json"}
-    
+
     if api_key and "generativelanguage" not in url:
         if is_anthropic:
             headers["x-api-key"] = api_key
@@ -940,9 +1412,10 @@ class ProviderEditorTUI:
     def _sync_from_state(self):
         self.providers =[]
         for pid, p in self.state["profiles"].items():
-            self.providers.append({"id": pid, "name": p.get("name", pid), "api_url": p.get("api_url", ""), "api_key": p.get("api_key", ""), "model": p.get("model", ""), "thinking_mode": p.get("thinking_mode", "")})
+            tag = profile_tag(p)
+            self.providers.append({"id": pid, "name": p.get("name", pid), "label": (f"[{tag}] " if tag else "") + p.get("name", pid), "api_url": p.get("api_url", ""), "api_key": p.get("api_key", ""), "model": p.get("model", ""), "thinking_mode": p.get("thinking_mode", ""), "protocol": profile_protocol(p), "binary": p.get("binary", ""), "effort": p.get("effort", ""), "source": p.get("source", "")})
         self.providers.sort(key=lambda x: x["name"].lower())
-        if not self.providers: self.providers.append({"id": "empty", "name": "No Providers", "api_url": "", "api_key": "", "model": ""})
+        if not self.providers: self.providers.append({"id": "empty", "name": "No Providers", "label": "No Providers", "api_url": "", "api_key": "", "model": "", "protocol": "openai", "source": ""})
 
     def run(self):
         self._trigger_fetch()
@@ -954,7 +1427,7 @@ class ProviderEditorTUI:
                 if self.status_flash > 0: self.status_flash -= 1
                 else: self.status_msg = ""
                 continue
-            
+
             self.stdscr.timeout(-1)
             if not self._handle_key(k): break
 
@@ -968,7 +1441,7 @@ class ProviderEditorTUI:
         seq = self.fetch_seq
 
         def worker():
-            m, err = fetch_models(prov["api_url"], prov["api_key"])
+            m, err = fetch_models(prov["api_url"], prov["api_key"], prov)
             if getattr(self, 'fetch_seq', 0) != seq: return
             self.raw_models, self.error, self.loading = m, err or "", False
             self._rebuild_tree()
@@ -999,7 +1472,7 @@ class ProviderEditorTUI:
         if not self.org_list: self.model_list =[]
         else: self.model_list = sorted(self.parsed_tree[self.org_list[self.org_idx]], key=lambda x: x["name"].lower())
         self.model_idx = min(self.model_idx, max(0, len(self.model_list) - 1))
-        
+
         if not self.show_org and self.active_col == 1: self.active_col = 2
 
     def _handle_key(self, k):
@@ -1051,9 +1524,9 @@ class ProviderEditorTUI:
                 if pid in self.state["profiles"]:
                     self.status_msg, self.status_flash = t('tui_sm_err_id_exist'), 30
                     return True
-                
+
                 norm_url = normalize_api_url(res[2])
-                self.state["profiles"][pid] = {"name": res[1], "api_url": norm_url, "api_key": res[3], "model": "", "thinking_mode": ""}
+                self.state["profiles"][pid] = {"name": res[1], "protocol": "openai", "api_url": norm_url, "api_key": res[3], "model": "", "thinking_mode": ""}
                 save_state(self.state)
                 self._sync_from_state()
                 for i, prov in enumerate(self.providers):
@@ -1061,33 +1534,67 @@ class ProviderEditorTUI:
                 self._trigger_fetch()
         elif char.lower() == 'd' and self.active_col == 0 and self.providers[self.prov_idx]["id"] != "empty":
             pid = self.providers[self.prov_idx]["id"]
+            if self.providers[self.prov_idx].get("source") in ("builtin", "miyu"):
+                self.status_msg, self.status_flash = t('tui_sm_err_ext_del'), 40
+                return True
             if pid == self.state.get("active_profile"): self.state["active_profile"] = ""
             del self.state["profiles"][pid]
             save_state(self.state); self.prov_idx = max(0, self.prov_idx - 1); self._sync_from_state(); self._trigger_fetch()
         elif code in (10, 13, ord('i'), ord('I')):
-            if self.active_col == 0 and self.providers[0]["id"] != "empty":
+            if self.active_col == 0 and self.providers[0]["id"] != "empty" and is_cli_protocol(self.providers[self.prov_idx]["protocol"]):
                 p = self.providers[self.prov_idx]
-                
+                effort_opts = ["关闭 (None)", "低 (Low)", "中 (Medium)", "高 (High)"] if LANG == "zh" else ["None", "Low", "Medium", "High"]
+                cur_effort = effort_opts[EFFORT_LEVELS.index(p["effort"])] if p["effort"] in EFFORT_LEVELS else effort_opts[0]
+                fields_config = [
+                    {"label": t('tui_sm_lbl_id'), "value": p["id"]},
+                    {"label": t('tui_sm_lbl_name'), "value": p["name"]},
+                    {"label": t('tui_sm_lbl_binary'), "value": p["binary"] or CLI_BACKENDS[p["protocol"]]["binary"]},
+                    {"label": t('tui_sm_lbl_effort'), "value": cur_effort, "type": "select", "options": effort_opts},
+                ]
+                res = form_dialog(self.stdscr, t('tui_sm_edit_prov', p['name']), fields_config)
+                if res:
+                    prof = self.state["profiles"][p["id"]]
+                    prof["effort"] = EFFORT_LEVELS[effort_opts.index(res[3])] if res[3] in effort_opts else ""
+                    if p.get("source") in ("builtin", "miyu"):
+                        if res[0].strip() != p["id"] or res[1] != p["name"] or res[2].strip() != (p["binary"] or CLI_BACKENDS[p["protocol"]]["binary"]):
+                            self.status_msg, self.status_flash = t('tui_sm_err_external', p["source"]), 40
+                    else:
+                        new_id = res[0].strip()
+                        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', new_id):
+                            self.status_msg, self.status_flash = t('tui_sm_err_id_invalid'), 30
+                            return True
+                        if new_id != p["id"] and new_id in self.state["profiles"]:
+                            self.status_msg, self.status_flash = t('tui_sm_err_id_exist'), 30
+                            return True
+                        if new_id != p["id"]:
+                            self.state["profiles"][new_id] = self.state["profiles"].pop(p["id"])
+                            if self.state.get("active_profile") == p["id"]: self.state["active_profile"] = new_id
+                        self.state["profiles"][new_id].update({"name": res[1], "binary": res[2].strip()})
+                    save_state(self.state)
+                    self._sync_from_state()
+                    self._trigger_fetch()
+            elif self.active_col == 0 and self.providers[0]["id"] != "empty":
+                p = self.providers[self.prov_idx]
                 # --- 动态思考配置挂载 ---
                 url_lower = p["api_url"].lower()
                 model_lower = p["model"].lower()
-                
+
                 is_deepseek = ("deepseek" in url_lower or "deepseek" in model_lower) and "chat" not in model_lower
                 is_gemini = "generativelanguage" in url_lower or "gemini" in model_lower
                 is_anthropic = "anthropic" in url_lower or "claude" in model_lower
                 # 新增 MiMo 判定，并排除 tts 语音等不支持思考的模型
                 is_mimo = ("xiaomimimo" in url_lower or "mimo" in model_lower) and "tts" not in model_lower
-                
+
                 # 将 MiMo 加入支持思考的白名单
                 supports_thinking = is_deepseek or is_gemini or is_anthropic or is_mimo
-                
+
                 fields_config = [
                     {"label":t('tui_sm_lbl_id'),"value":p["id"]}, 
                     {"label":t('tui_sm_lbl_name'),"value":p["name"]}, 
                     {"label":t('tui_sm_lbl_url'),"value":p["api_url"]}, 
                     {"label":t('tui_sm_lbl_key'),"value":p["api_key"]}
                 ]
-                
+
                 if supports_thinking:
                     if is_gemini:
                         think_opts = ["关闭 / 极低 (Disabled / Minimal)", "开启 - 低 (Low)", "开启 - 中 (Medium)", "开启 - 高 (High)"] if LANG == "zh" else ["Disabled / Minimal", "Enabled (Low)", "Enabled (Medium)", "Enabled (High)"]
@@ -1098,21 +1605,27 @@ class ProviderEditorTUI:
                         think_opts = ["关闭 (Disabled)", "开启 (Enabled)"] if LANG == "zh" else ["Disabled", "Enabled"]
                     else:
                         think_opts = ["关闭 (Disabled)", "开启 - 低 (Low)", "开启 - 中 (Medium)", "开启 - 高 (High)"] if LANG == "zh" else ["Disabled", "Enabled (Low)", "Enabled (Medium)", "Enabled (High)"]
-                    
+
                     curr_think = p.get("thinking_mode", "")
-                    
+
                     if not curr_think or curr_think not in think_opts:
                         curr_think = think_opts[0]
-                        
+
                     fields_config.append({
                         "label": t('tui_st_thinking'),
                         "value": curr_think,
                         "type": "select",
                         "options": think_opts
                     })
-                
+
                 res = form_dialog(self.stdscr, t('tui_sm_edit_prov', p['name']), fields_config)
-                
+                if res and p.get("source") == "miyu":
+                    if supports_thinking and len(res) > 4:
+                        self.state["profiles"][p["id"]]["thinking_mode"] = res[4]
+                        save_state(self.state); self._sync_from_state()
+                    if res[0].strip() != p["id"] or res[1] != p["name"] or res[2] != p["api_url"] or res[3] != p["api_key"]:
+                        self.status_msg, self.status_flash = t('tui_sm_err_external', "miyu"), 40
+                    return True
                 if res:
                     new_id = res[0].strip()
                     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', new_id):
@@ -1121,7 +1634,7 @@ class ProviderEditorTUI:
                     if new_id != p["id"] and new_id in self.state["profiles"]:
                         self.status_msg, self.status_flash = t('tui_sm_err_id_exist'), 30
                         return True
-                        
+
                     if new_id != p["id"]:
                         self.state["profiles"][new_id] = self.state["profiles"].pop(p["id"])
                         if self.state.get("active_profile") == p["id"]:
@@ -1129,10 +1642,10 @@ class ProviderEditorTUI:
 
                     norm_url = normalize_api_url(res[2])
                     self.state["profiles"][new_id].update({"name": res[1], "api_url": norm_url, "api_key": res[3]})
-                    
+
                     if supports_thinking and len(res) > 4:
                         self.state["profiles"][new_id]["thinking_mode"] = res[4]
-                        
+
                     save_state(self.state)
                     self._sync_from_state()
                     for i, prov in enumerate(self.providers):
@@ -1152,7 +1665,7 @@ class ProviderEditorTUI:
     def _draw(self):
         self.stdscr.erase()
         h, w = self.stdscr.getmaxyx()
-        w1 = max(22, min(32, max((str_width(p["name"]) for p in self.providers), default=20) + 4))
+        w1 = max(22, min(36, max((str_width(p["label"]) for p in self.providers), default=20) + 4))
         w2 = max(22, min(32, max((str_width(o) for o in self.org_list), default=20) + 4)) if self.show_org else 0
         w3 = w - w1 - w2 - (2 if self.show_org else 1)
 
@@ -1163,16 +1676,16 @@ class ProviderEditorTUI:
         if self.status_msg: msg, attr = f" {self.status_msg} ", curses.color_pair(C_SUCCESS)|curses.A_BOLD
         elif self.filter_mode: msg, attr = t('tui_sm_srch', self.filter_str), curses.color_pair(C_TITLE)|curses.A_BOLD
         else: msg, attr = t('tui_sm_nav'), curses.color_pair(C_TITLE)
-        
+
         _safe_addstr(self.stdscr, h - 1, 0, pad_str(msg, w)[:w], attr)
 
-        self._draw_list(0, h - 1, w1, t('tui_sm_prov'), [p["name"] for p in self.providers], self.prov_idx, 0, 0)
+        self._draw_list(0, h - 1, w1, t('tui_sm_prov'), [p["label"] for p in self.providers], self.prov_idx, 0, 0)
         if self.show_org: 
             self._draw_list(w1 + 1, h - 1, w2, t('tui_sm_org'), self.org_list, self.org_idx, 1, 1)
             m_x = w1 + 1 + w2 + 1
         else:
             m_x = w1 + 1
-            
+
         self._draw_models(m_x, h - 1, w3, 2)
         self.stdscr.refresh()
 
@@ -1187,14 +1700,14 @@ class ProviderEditorTUI:
             if idx >= len(items): break
             is_cur = (idx == cur_idx) and (col_idx <= self.active_col)
             attr = curses.color_pair(C_HL) if (is_cur and self.active_col == col_idx) else (curses.color_pair(C_TITLE)|curses.A_REVERSE if is_cur else curses.color_pair(C_TITLE))
-            
+
             disp_w, vis_str = 0, ""
             prefix = "► " if is_cur and self.active_col == col_idx else "  "
             for ch in prefix + items[idx]:
                 cw = str_width(ch)
                 if disp_w + cw > w - 1: break
                 vis_str += ch; disp_w += cw
-                
+
             _safe_addstr(self.stdscr, i + 1, x_offset, pad_str(vis_str, w - 1), attr)
         _safe_addstr(self.stdscr, h - 1, x_offset, "─" * w, curses.color_pair(C_TITLE) | curses.A_DIM)
 
@@ -1222,14 +1735,14 @@ class ProviderEditorTUI:
                 if self.providers[self.prov_idx]["model"] == self.model_list[idx]["full"]: m_name += "[Current]"
                 is_cur = (idx == self.model_idx) and (self.active_col >= col_idx)
                 attr = curses.color_pair(C_HL) if (is_cur and self.active_col == col_idx) else (curses.color_pair(C_TITLE)|curses.A_REVERSE if is_cur else curses.color_pair(C_TITLE))
-                
+
                 disp_w, vis_str = 0, ""
                 prefix = "► " if is_cur and self.active_col == col_idx else "  "
                 for ch in prefix + m_name:
                     cw = str_width(ch)
                     if disp_w + cw > w - 1: break
                     vis_str += ch; disp_w += cw
-                    
+
                 _safe_addstr(self.stdscr, i + 1, x_offset, pad_str(vis_str, w - 1), attr)
         _safe_addstr(self.stdscr, h - 1, x_offset, "─" * w, curses.color_pair(C_TITLE) | curses.A_DIM)
 
@@ -1241,7 +1754,7 @@ def run_app(stdscr):
     init_colors()
     curses.curs_set(0)
     state = load_state()
-    
+
     while True:
         act_name = state["profiles"].get(state.get("active_profile", ""), {}).get("name", "None")
         main_opts =[
@@ -1251,35 +1764,37 @@ def run_app(stdscr):
             (t('tui_opt_vocab'), "edit_vocab"),
             (t('tui_opt_export'), "export")
         ]
-        
+
         choice = menu_dialog(stdscr, t('tui_main_title'), main_opts)
         if choice in (None, "QUIT", "exit"): break
-        
+
         if choice == "switch":
             valid_opts =[]
             for k, v in state["profiles"].items():
-                if v.get('api_url') and v.get('api_key') and v.get('model'):
-                    valid_opts.append((f"{v.get('name', k)} [{v.get('model')}]", k))
+                if profile_is_usable(v):
+                    tag = profile_tag(v)
+                    valid_opts.append((f"{('[' + tag + '] ') if tag else ''}{v.get('name', k)} [{v.get('model')}]", k))
             if not valid_opts:
                 msgbox(stdscr, t('msg_info'), t('tui_sw_err'))
                 continue
-            
+
             res = menu_dialog(stdscr, t('tui_sw_title'), valid_opts, allow_search=True)
             if res and res != 'QUIT': state["active_profile"] = res; save_state(state)
-                
+
         elif choice == "edit_profiles":
             ProviderEditorTUI(stdscr, state).run()
 
         elif choice == "edit_settings":
             s = state["settings"]
-            
+
             fields_config = [
                 {"label": t('tui_st_prompt'), "value": s.get("prompt", ""), "type": "textarea"},
                 {"label": t('tui_st_trigger'), "value": s.get("ai_trigger", "v")},
                 {"label": t('tui_st_tokens'), "value": str(s.get("max_tokens", 4000))},
                 {"label": t('tui_st_temp'), "value": str(s.get("temperature", 0.1))},
                 {"label": t('tui_st_time'), "value": str(s.get("max_time", 30.0))},
-                {"label": t('tui_st_history_bytes'), "value": str(s.get("max_history_bytes", 240))}
+                {"label": t('tui_st_history_bytes'), "value": str(s.get("max_history_bytes", 240))},
+                {"label": t('tui_st_cli_timeout'), "value": str(s.get("cli_timeout", DEFAULT_CLI_TIMEOUT))}
             ]
 
             res = form_dialog(stdscr, t('tui_st_title'), fields_config)
@@ -1289,6 +1804,7 @@ def run_app(stdscr):
                 s["temperature"] = float(res[3]) if res[3].replace('.','',1).isdigit() else 0.1
                 s["max_time"] = float(res[4]) if res[4].replace('.','',1).isdigit() else 30.0
                 s["max_history_bytes"] = int(res[5]) if res[5].isdigit() else 240
+                s["cli_timeout"] = float(res[6]) if res[6].replace('.','',1).isdigit() else DEFAULT_CLI_TIMEOUT
                 save_state(state)
 
         elif choice == "edit_vocab":

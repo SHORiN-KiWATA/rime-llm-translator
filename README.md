@@ -83,7 +83,27 @@
     
 4. 配置大模型
 
-    运行`rime-llm-config`命令进行模型配置。自带了一个硅基流动的 GLM-4 试用，效果很差，算是体验一下hhh
+    运行`rime-llm-config`命令进行模型配置。自带了一个 opencode zen 的公共节点，算是体验一下hhh
+
+    > 本机装了 `claude` / `codex` / `agy` / `opencode` / `miyu` 中任意一个的话，不用填 key 也能直接用，见下面的「本机 CLI 后端」。
+
+## 本机 CLI 后端
+
+除了填 API 地址和密钥，也可以把本机已经登录好的编码 agent 当供应商，走它们的订阅额度：
+
+| 节点 | 命令 | 默认模型 |
+|---|---|---|
+| Claude Code CLI | `claude` | sonnet |
+| Codex CLI | `codex` | gpt-5.6-terra |
+| Antigravity CLI | `agy` | gemini-3.8-flash-low |
+| opencode CLI | `opencode` | opencode/big-pickle |
+| Miyu | `miyu` | 交给 Miyu 自己的模型路由 |
+
+- 打开 `rime-llm-config` 时会自动探测 PATH 上有哪些命令，各生成一个 `[CLI]` 节点；模型列表能问命令的就问命令（缓存一天），在「供应商和模型」里照常选模型，在「激活配置」里选中即可。
+- 装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话，会顺带只读导入 Miyu 里配好的供应商，显示为 `[Miyu]` 节点（id 前缀 `miyu_`），改了 Miyu 的配置下次打开自动同步；这类节点只能在这里改模型和思考强度。
+- CLI 节点的编辑表单里可以改可执行文件路径和思考强度（关闭 / 低 / 中 / 高，对应各家的 effort 参数）。
+- 每次请求是一次性的，不带会话、不开工具、不写磁盘。CLI 线比直连 HTTP 慢：实测 claude sonnet 约 3 秒，codex / agy / opencode 约 7~10 秒，超时可在「全局参数设置 → CLI 后端超时」调整（默认 60 秒）。
+- Lua 侧走 CLI 时是调用 `rime-llm-config ask` 完成请求的，`rime-llm-config ask "拼音"` 也可以在终端里直接用来排查问题；`rime-llm-config debug` 的日志同样会记录 CLI 线的请求。
 
 ## 编辑配置
 

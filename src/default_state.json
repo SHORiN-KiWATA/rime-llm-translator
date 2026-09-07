@@ -62,7 +62,9 @@
         "max_tokens": 4000,
         "temperature": 0.1,
         "connect_timeout": 2.0,
-        "max_time": 30.0
+        "max_time": 30.0,
+        "cli_timeout": 60.0,
+        "max_history_bytes": 240
     },
     "vocab": {
         "terms": [

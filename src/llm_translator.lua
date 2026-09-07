@@ -1,6 +1,7 @@
 -- ==============================================================================
 -- 文件名：llm_translator.lua
 -- 功能：基于 LLM 的拼音长句整句翻译引擎 (支持 OpenAI / Anthropic / 思考模式智能切换)
+--       以及本机 CLI 后端 (claude / codex / agy / opencode / miyu，经 rime-llm-config ask 一次性问答)
 -- ==============================================================================
 
 -- 🧠 记录最近上屏记录的记忆容器与长度计算
@@ -11,7 +12,9 @@ local function load_config()
     local home = os.getenv("HOME")
     if not home then return nil, "系统环境变量 HOME 无法读取" end
 
-    local config_path = home .. "/.config/rime-llm-translator/config.lua"
+    local config_dir = os.getenv("RIME_LLM_CONFIG_DIR")
+    if not config_dir or config_dir == "" then config_dir = home .. "/.config/rime-llm-translator" end
+    local config_path = config_dir .. "/config.lua"
 
     local f = io.open(config_path, "r")
     if not f then 
@@ -36,6 +39,33 @@ local function escape_json(str)
     s = string.gsub(s, "\r", "\\r")
     s = string.gsub(s, "\t", "\\t")
     return s
+end
+
+-- 单引号包裹，供 io.popen 的 shell 命令行安全传参
+local function shell_quote(str)
+    return "'" .. string.gsub(str or "", "'", "'\\''") .. "'"
+end
+
+local CLI_PROTOCOLS = { ["claude-code"] = true, codex = true, antigravity = true, opencode = true, miyu = true }
+
+-- 本机 CLI 后端：交给 rime-llm-config ask 做一次性问答，返回 (text, err)
+local function ask_cli_backend(Config, profile_id, current_ai, send_text, history_text)
+    local tool = Config.config_tool
+    if not tool or tool == "" or not io.open(tool, "r") then tool = "rime-llm-config" end
+    local cmd = string.format(
+        "%s ask --profile %s --history %s %s 2>/dev/null",
+        shell_quote(tool), shell_quote(profile_id), shell_quote(history_text or ""), shell_quote(send_text)
+    )
+    local handle = io.popen(cmd)
+    if not handle then return nil, "io.popen 崩溃" end
+    local response = handle:read("*a") or ""
+    handle:close()
+    if response == "" then return nil, "无响应 (" .. (current_ai.binary or "CLI") .. ")" end
+    if string.sub(response, 1, 4) == "ERR:" then
+        local short_err = string.gsub(string.sub(response, 6, 60), "[\r\n]", " ")
+        return nil, short_err
+    end
+    return string.gsub(response, "^%s*(.-)%s*$", "%1"), nil
 end
 
 local function translator(input, seg, env)
@@ -67,6 +97,18 @@ local function translator(input, seg, env)
         return
     end
 
+    -- 🖥️ 本机 CLI 后端分支：不走 curl，整段交给 rime-llm-config ask
+    if CLI_PROTOCOLS[current_ai.protocol or ""] then
+        local history_text = table.concat(commit_history, "")
+        local text, err = ask_cli_backend(Config, Config.active_profile, current_ai, send_text, history_text)
+        if text and text ~= "" then
+            yield(Candidate("llm", seg.start, seg._end, text, "✨ " .. (current_ai.name or "CLI")))
+        else
+            yield(Candidate("llm", seg.start, seg._end, send_text, "❌ " .. tostring(err)))
+        end
+        return
+    end
+
     local api_key = current_ai.api_key
     if not api_key or api_key == "" then
         yield(Candidate("llm", seg.start, seg._end, send_text, "❌ API Key 为空，请配置"))
@@ -74,7 +116,8 @@ local function translator(input, seg, env)
     end
 
     -- 通过全新的 escape_json 函数进行终极安全处理
-    local safe_prompt = escape_json(Config.prompt or "")
+    -- 系统提示词 + 自定义词库（vocab_prompt 由 rime-llm-config 从词库生成）
+    local safe_prompt = escape_json((Config.prompt or "") .. (Config.vocab_prompt or ""))
     local safe_text = escape_json(send_text)
     
     local url_lower = string.lower(current_ai.api_url)

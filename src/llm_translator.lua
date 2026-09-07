@@ -7,6 +7,8 @@
 --   · HTTP 线走 curl，协议只有 openai-chat / anthropic 两种；厂商差异（思考档、
 --     改模型名）全部由 rime-llm-config 在导出 config.lua 时解析成 request_extra
 --   · CLI 线（claude / codex / agy / opencode / miyu）交给 rime-llm-config ask
+--   · 拼音以聊天前缀（默认 miyu:）开头时不走当前节点，而是交给 rime-llm-config chat
+--     去跟 Miyu 的固定会话对话（call: 仍然是问当前供应商，两者互不混淆）
 --
 -- rime.lua 里写：
 --   llm_translator = require("llm_translator")
@@ -392,27 +394,57 @@ end
 -- ==============================================================================
 local CLI_PROTOCOLS = { ["claude-code"] = true, codex = true, antigravity = true, opencode = true, miyu = true }
 
-local function ask_cli_backend(cfg, profile_id, profile, send_text, history_text)
+local function config_tool_of(cfg)
     local tool = cfg.config_tool
-    if not tool or tool == "" then
-        tool = "rime-llm-config"
-    else
-        local f = io.open(tool, "r")
-        if f then f:close() else tool = "rime-llm-config" end
-    end
-    local cmd = string.format(
-        "%s ask --profile %s --history %s %s 2>/dev/null",
-        shell_quote(tool), shell_quote(profile_id), shell_quote(history_text or ""), shell_quote(send_text)
-    )
+    if not tool or tool == "" then return "rime-llm-config" end
+    local f = io.open(tool, "r")
+    if f then f:close() return tool end
+    return "rime-llm-config"
+end
+
+-- 跑 rime-llm-config 的一个子命令：stdout 就是正文，首行 `ERR: ...` 表示失败
+local function run_config_tool(cmd, who)
     local handle = io.popen(cmd)
     if not handle then return nil, "io.popen 崩溃" end
     local response = handle:read("*a") or ""
     handle:close()
-    if response == "" then return nil, "无响应 (" .. (profile.binary or "CLI") .. ")" end
+    if response == "" then return nil, "无响应 (" .. who .. ")" end
     if string.sub(response, 1, 4) == "ERR:" then
-        return nil, short(string.sub(response, 6), 60)
+        return nil, short(trim(string.sub(response, 6)), 60)
     end
     return trim(response), nil
+end
+
+local function ask_cli_backend(cfg, profile_id, profile, send_text, history_text)
+    local cmd = string.format(
+        "%s ask --profile %s --history %s %s 2>/dev/null",
+        shell_quote(config_tool_of(cfg)), shell_quote(profile_id), shell_quote(history_text or ""), shell_quote(send_text)
+    )
+    return run_config_tool(cmd, profile.binary or "CLI")
+end
+
+-- ==============================================================================
+-- 后端：Miyu 聊天（rime-llm-config chat → miyu ask --session ...）
+-- ==============================================================================
+local function chat_prefix_of(cfg)
+    local prefix = cfg and cfg.miyu_prefix
+    if type(prefix) ~= "string" then return "" end
+    return prefix
+end
+
+-- 返回去掉前缀后的正文；不是聊天请求时返回 nil
+local function chat_text_of(cfg, send_text)
+    local prefix = chat_prefix_of(cfg)
+    if prefix == "" or #send_text <= #prefix then return nil end
+    if string.sub(send_text, 1, #prefix) ~= prefix then return nil end
+    local text = trim(string.sub(send_text, #prefix + 1))
+    if text == "" then return nil end
+    return text
+end
+
+local function ask_chat_backend(cfg, text)
+    local cmd = string.format("%s chat %s 2>/dev/null", shell_quote(config_tool_of(cfg)), shell_quote(text))
+    return run_config_tool(cmd, "miyu")
 end
 
 -- ==============================================================================
@@ -612,6 +644,26 @@ local function translator_func(input, seg, env)
     send_text = string.gsub(send_text, "[\\/]", "、")
     if #send_text == 0 then return end
 
+    -- 聊天前缀：不看当前节点，直接找 Miyu 的固定会话；回复同样进缓存，避免 Rime 重建菜单时重复请求
+    local chat_text = chat_text_of(cfg, send_text)
+    if chat_text then
+        local history_text = table.concat(commit_history, "")
+        local cache_key = table.concat({ "miyu-chat", chat_text, history_text }, "\0")
+        local cached = cache_get(cache_key)
+        if cached then
+            yield(llm_candidate(seg, cached, "✨ Miyu"))
+            return
+        end
+        local text, err = ask_chat_backend(cfg, chat_text)
+        if text and text ~= "" then
+            cache_put(cache_key, text)
+            yield(llm_candidate(seg, text, "✨ Miyu"))
+        else
+            yield_error(seg, chat_text, err or "未知错误")
+        end
+        return
+    end
+
     local profile_id = cfg.active_profile or ""
     local profile = cfg.profiles and cfg.profiles[profile_id]
     if not profile then
@@ -721,4 +773,5 @@ return {
     _build_body = build_body,
     _extract_reply = extract_reply,
     _effective_protocol = effective_protocol,
+    _chat_text_of = chat_text_of,
 }

@@ -65,7 +65,12 @@
         "connect_timeout": 2.0,
         "max_time": 30.0,
         "cli_timeout": 60.0,
-        "max_history_bytes": 240
+        "max_history_bytes": 240,
+        "miyu_prefix": "miyu:",
+        "miyu_session": "rime",
+        "miyu_timeout": 60.0,
+        "miyu_tools": false,
+        "miyu_prompt": "现在是用户通过 Rime 输入法在别的软件里打字时呼叫你：消息是汉语拼音（可能夹杂错拼、简拼和英文单词），请先按语境把拼音还原成中文，再回答。你的回答会直接作为用户的打字内容上屏，所以：只回答问题本身，尽量简短，纯文本单段，不用 Markdown、列表和标题，不要客套话，不要反问。"
     },
     "vocab": {
         "terms": [

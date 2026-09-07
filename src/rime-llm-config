@@ -44,6 +44,7 @@ I18N = {
         "cli_help_stat": "  status           : Show current configuration info.",
         "cli_help_debug": "  debug            : Start real-time debug monitor.",
         "cli_help_ask": "  ask <text>       : One-shot answer via the active node (used by Lua for CLI backends).",
+        "cli_help_chat": "  chat <text>      : Talk to Miyu's fixed session (used by Lua for the `miyu:` prefix).",
         "cli_help_catalog": "  catalog          : Refresh the models.dev model catalog cache.",
         "cli_help_h": "  -h / --help      : Show this help message.",
         "cli_bk_create": "Backup created at: {}",
@@ -82,6 +83,7 @@ I18N = {
         "cli_stat_extra": "Request extra  :",
         "cli_stat_state": "State File     :",
         "cli_stat_lua": "Lua Config     :",
+        "cli_stat_miyu": "Miyu chat",
         "cli_err_cmd": "Unknown command: {}",
 
         # TUI Main
@@ -105,6 +107,18 @@ I18N = {
         "tui_st_time": "Max Time (s)",
         "tui_st_cli_timeout": "CLI backend timeout (s)",
         "tui_st_history_bytes": "History Capacity (Bytes)",
+        "tui_st_miyu_prefix": "Chat prefix (empty=off)",
+        "tui_st_miyu_session": "Session name",
+        "tui_st_miyu_timeout": "Timeout (s)",
+        "tui_st_miyu_tools": "May use tools",
+        "tui_st_miyu_prompt": "Host instructions",
+        "tui_st_miyu_binary": "miyu path (empty=auto)",
+        "tui_yes": "Yes",
+        "tui_no": "No",
+        "tui_opt_miyu": "Chat with Miyu  [{}]",
+        "tui_miyu_title": " Chat with Miyu ",
+        "tui_miyu_off": "off",
+        "tui_miyu_bad": "Miyu is not usable right now:\n{}\n\nSettings are still editable.",
 
         # TUI Vocab
         "tui_vc_title": " Custom Vocabulary ",
@@ -188,6 +202,7 @@ I18N = {
         "cli_help_stat": "  status           : 显示当前配置信息",
         "cli_help_debug": "  debug            : 启动实时调试监控，并开启日志记录",
         "cli_help_ask": "  ask <文本>       : 用当前节点做一次性问答(Lua 侧走本机 CLI 后端时调用)",
+        "cli_help_chat": "  chat <文本>      : 跟 Miyu 的固定会话聊一句(Lua 侧遇到 `miyu:` 前缀时调用)",
         "cli_help_catalog": "  catalog          : 刷新 models.dev 模型目录缓存",
         "cli_help_h": "  -h / --help      : 显示此帮助信息",
         "cli_bk_create": "已创建配置文件备份: {}",
@@ -226,6 +241,7 @@ I18N = {
         "cli_stat_extra": "请求附加字段 :",
         "cli_stat_state": "JSON状态文件 :",
         "cli_stat_lua": "Lua 配置路径 :",
+        "cli_stat_miyu": "Miyu 聊天",
         "cli_err_cmd": "未知的命令: {}",
 
         # TUI Main
@@ -249,6 +265,18 @@ I18N = {
         "tui_st_time": "回复超时 (Max Time)",
         "tui_st_cli_timeout": "CLI 后端超时 (秒)",
         "tui_st_history_bytes": "历史上下文容量 (Bytes)",
+        "tui_st_miyu_prefix": "聊天前缀 (留空关闭)",
+        "tui_st_miyu_session": "会话名",
+        "tui_st_miyu_timeout": "回复超时 (秒)",
+        "tui_st_miyu_tools": "允许她使用工具",
+        "tui_st_miyu_prompt": "宿主指令",
+        "tui_st_miyu_binary": "miyu 路径 (留空自动)",
+        "tui_yes": "是",
+        "tui_no": "否",
+        "tui_opt_miyu": "跟 Miyu 聊天  [{}]",
+        "tui_miyu_title": " 跟 Miyu 聊天 ",
+        "tui_miyu_off": "已关闭",
+        "tui_miyu_bad": "现在还用不了 Miyu：\n{}\n\n设置仍然可以先填好。",
 
         # TUI Vocab
         "tui_vc_title": " 自定义词库 ",
@@ -350,11 +378,23 @@ RUNTIME_TMP_DIR = os.path.join(RUNTIME_DIR, "rime-llm-translator") if RUNTIME_DI
 CONFIG_TMP_DIR = os.path.join(CONFIG_DIR, "tmp")
 DEBUG_FLAG = os.path.join(RUNTIME_DIR or CACHE_DIR, "rime-llm-debug.flag")
 DEBUG_LOG = os.path.join(CACHE_DIR, "debug.log")
+# 本机可能同时装着包管理器的旧版和自编译的新版，探测结果按 (路径, mtime, 大小) 缓存
+MIYU_CAPS_FILE = os.path.join(CACHE_DIR, "miyu_caps.json")
 MIYU_HOME = os.environ.get("MIYU_HOME", os.path.expanduser("~/.miyu"))
 MIYU_CONFIG = os.path.join(MIYU_HOME, "config", "config.jsonc")
 MIYU_CATALOG = os.path.join(MIYU_HOME, "cache", "models_cache.json")
 MIYU_THINKING = os.path.join(MIYU_HOME, "state", "thinking-variants.json")
 DEFAULT_CLI_TIMEOUT = 60.0
+
+# `miyu:` 前缀聊天：不经过当前节点，直接找 Miyu 的一个固定会话（跨调用连续）
+DEFAULT_MIYU_PREFIX = "miyu:"
+DEFAULT_MIYU_SESSION = "rime"
+DEFAULT_MIYU_TIMEOUT = 60.0
+DEFAULT_MIYU_PROMPT = (
+    "现在是用户通过 Rime 输入法在别的软件里打字时呼叫你：消息是汉语拼音（可能夹杂错拼、简拼和英文单词），"
+    "请先按语境把拼音还原成中文，再回答。你的回答会直接作为用户的打字内容上屏，所以：只回答问题本身，尽量简短，"
+    "纯文本单段，不用 Markdown、列表和标题，不要客套话，不要反问。"
+)
 
 # ==========================================
 # 🔌 协议
@@ -1173,6 +1213,136 @@ def cli_complete(profile, system_prompt, user_text, timeout=DEFAULT_CLI_TIMEOUT)
     raise RuntimeError(f"unsupported protocol: {protocol}")
 
 
+def _settings_float(settings, key, default):
+    try:
+        return float(settings.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _miyu_supports_json(path):
+    """这个 miyu 认不认程序驱动那套参数（--output-format / --session）。
+    旧版把不认识的参数当消息正文发出去，不会报错，所以必须先探测再调用。"""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return False
+    key, sig = os.path.realpath(path), f"{int(st.st_mtime)}:{st.st_size}"
+    try:
+        with open(MIYU_CAPS_FILE, "r", encoding="utf-8") as f:
+            caps = json.load(f)
+        if not isinstance(caps, dict):
+            caps = {}
+    except Exception:
+        caps = {}
+    hit = caps.get(key)
+    if isinstance(hit, dict) and hit.get("sig") == sig:
+        return bool(hit.get("ok"))
+    try:
+        _rc, out, _err = _run_cli([path, "ask", "--help"], "", timeout=15)
+        ok = "--output-format" in out and "--session" in out
+    except Exception:
+        ok = False
+    caps[key] = {"sig": sig, "ok": ok}
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(MIYU_CAPS_FILE, "w", encoding="utf-8") as f:
+            json.dump(caps, f)
+    except OSError:
+        pass
+    return ok
+
+
+def find_miyu(settings):
+    """挑一个够新的 miyu：设置里指定的优先，然后是 PATH，最后是常见安装位置。
+    fcitx5 拉起的进程 PATH 常常没有 ~/.local/bin，所以不能只信 which。"""
+    configured = str(settings.get("miyu_binary", "") or "").strip()
+    if configured:
+        path = shutil.which(configured) or (configured if os.path.isfile(configured) else "")
+        if not path:
+            raise RuntimeError(f"command not found: {configured}")
+        if not _miyu_supports_json(path):
+            raise RuntimeError(f"{path} is too old: `ask` lacks --output-format/--session")
+        return path
+    seen, outdated = [], ""
+    for cand in (shutil.which("miyu"), os.path.expanduser("~/.local/bin/miyu"),
+                 "/usr/local/bin/miyu", "/usr/bin/miyu"):
+        if not cand or cand in seen or not os.path.isfile(cand):
+            continue
+        seen.append(cand)
+        if _miyu_supports_json(cand):
+            return cand
+        outdated = outdated or cand
+    if outdated:
+        raise RuntimeError(f"{outdated} is too old: `ask` lacks --output-format/--session (update Miyu)")
+    raise RuntimeError("command not found: miyu")
+
+
+def miyu_chat(settings, vocab, text):
+    """`miyu ask --session <名> --create --output-format json ...`：一行 done/error 事件，返回 (正文, 模型, 耗时ms)。"""
+    binary = find_miyu(settings)
+    session = str(settings.get("miyu_session", "") or "").strip() or DEFAULT_MIYU_SESSION
+    timeout = _settings_float(settings, "miyu_timeout", DEFAULT_MIYU_TIMEOUT)
+    host_prompt = str(settings.get("miyu_prompt", "") or "").strip() or DEFAULT_MIYU_PROMPT
+    block = vocab_block(vocab)
+    if block:
+        host_prompt = f"{host_prompt}\n\n{block}"
+    argv = [binary, "ask", "--session", session, "--create", "--output-format", "json", "--quiet",
+            "--timeout", str(max(1, int(timeout))), "--append-system-prompt", host_prompt, "--stdin"]
+    if not settings.get("miyu_tools", False):
+        argv.append("--no-tools")
+    with tempfile.TemporaryDirectory(prefix="rime-llm-") as workdir:
+        rc, out, err = _run_cli(argv, text, cwd=workdir, timeout=timeout + 5)
+    event = {}
+    for line in reversed(out.splitlines()):
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            candidate = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(candidate, dict) and "type" in candidate:
+            event = candidate
+            break
+    if event.get("type") == "done":
+        answer = _clean_answer(str(event.get("text") or ""))
+        if not answer:
+            raise RuntimeError("miyu returned an empty answer")
+        return answer, str(event.get("model") or ""), event.get("elapsed_ms")
+    if event.get("type") == "error":
+        kind = str(event.get("kind") or "error")
+        msg = str(event.get("message") or "").strip()
+        if kind == "timeout":
+            raise RuntimeError(f"timed out after {timeout:g}s")
+        raise RuntimeError(f"{kind}: {msg}" if msg else kind)
+    if rc == 124:
+        raise RuntimeError(f"timed out after {timeout:g}s")
+    raise RuntimeError(err or _clean_answer(out)[-200:] or f"miyu exited with {rc}")
+
+
+def run_chat(argv):
+    """`rime-llm-config chat <text>`：把一句话发进 Miyu 的固定会话，正文写 stdout；
+    失败时 stdout 首行为 `ERR: ...` 并以 1 退出（与 ask 同一套约定）。"""
+    user_text = " ".join(argv).strip()
+    if not user_text and not sys.stdin.isatty():
+        user_text = sys.stdin.read().strip()
+    if not user_text:
+        print("ERR: empty input"); return 1
+    state = load_state()
+    settings = state.get("settings", {})
+    session = settings.get("miyu_session", DEFAULT_MIYU_SESSION)
+    t0 = time.time()
+    try:
+        answer, model, _elapsed = miyu_chat(settings, state.get("vocab", {}), user_text)
+    except Exception as e:
+        _debug_log(f"【Miyu 聊天】 {session}", user_text, f"ERR: {e}", time.time() - t0)
+        print(f"ERR: {e}"); return 1
+    _debug_log(f"【Miyu 聊天】 {session} ({model})", user_text, answer, time.time() - t0)
+    sys.stdout.write(answer)
+    return 0
+
+
 def run_ask(argv):
     """`rime-llm-config ask [--profile ID] [--history TEXT] <text>`：一次性问答，正文写 stdout；
     失败时 stdout 首行为 `ERR: ...` 并以 1 退出（Lua 侧靠前缀分辨）。"""
@@ -1207,17 +1377,18 @@ def run_ask(argv):
     except (TypeError, ValueError):
         timeout = DEFAULT_CLI_TIMEOUT
     t0 = time.time()
+    label = f"【CLI 节点】 {profile.get('name', '?')} ({stored_protocol(profile)} / {profile.get('model', '')})"
     try:
         answer = cli_complete(profile, system_prompt, user_text, timeout=timeout)
     except Exception as e:
-        _debug_log(profile, user_text, f"ERR: {e}", time.time() - t0)
+        _debug_log(label, user_text, f"ERR: {e}", time.time() - t0)
         print(f"ERR: {e}"); return 1
-    _debug_log(profile, user_text, answer, time.time() - t0)
+    _debug_log(label, user_text, answer, time.time() - t0)
     sys.stdout.write(answer)
     return 0
 
 
-def _debug_log(profile, user_text, answer, elapsed):
+def _debug_log(label, user_text, answer, elapsed):
     """与 Lua 侧共用 DEBUG_FLAG 触发器与 DEBUG_LOG 日志（路径由 config.lua 传给 Lua）。"""
     if not os.path.exists(DEBUG_FLAG):
         return
@@ -1225,7 +1396,7 @@ def _debug_log(profile, user_text, answer, elapsed):
         os.makedirs(os.path.dirname(DEBUG_LOG), exist_ok=True)
         with open(DEBUG_LOG, "a", encoding="utf-8") as f:
             f.write("========== " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========\n")
-            f.write(f"【CLI 节点】 {profile.get('name', '?')} ({stored_protocol(profile)} / {profile.get('model', '')}) {elapsed:.2f}s\n")
+            f.write(f"{label} {elapsed:.2f}s\n")
             f.write("【发出的文本】\n" + user_text + "\n\n【收到的返回】\n" + answer + "\n")
             f.write("==================================================\n\n")
     except OSError:
@@ -1259,6 +1430,9 @@ def get_default_state():
             "prompt": "你是一个智能拼音输入法引擎。你的职责是把用户输入的拼音转换为流畅、通顺、合理的句子，识别错输、漏输、乱序。你的输出会直接上屏：禁止任何客套话，禁止 Markdown。",
             "ai_trigger": "vv", "max_tokens": 4000, "temperature": 0.1,
             "connect_timeout": 2.0, "max_time": 30.0, "cli_timeout": DEFAULT_CLI_TIMEOUT, "max_history_bytes": 240,
+            "miyu_prefix": DEFAULT_MIYU_PREFIX, "miyu_session": DEFAULT_MIYU_SESSION,
+            "miyu_timeout": DEFAULT_MIYU_TIMEOUT, "miyu_tools": False, "miyu_prompt": DEFAULT_MIYU_PROMPT,
+            "miyu_binary": "",
         },
         "vocab": {"terms": [], "mappings": {}},
     }
@@ -1295,6 +1469,10 @@ def migrate_state(data, default_state):
     for k, v in default_state.get("settings", {}).items():
         data["settings"].setdefault(k, v)
     data["settings"].setdefault("cli_timeout", DEFAULT_CLI_TIMEOUT)
+    for k, v in (("miyu_prefix", DEFAULT_MIYU_PREFIX), ("miyu_session", DEFAULT_MIYU_SESSION),
+                 ("miyu_timeout", DEFAULT_MIYU_TIMEOUT), ("miyu_tools", False),
+                 ("miyu_prompt", DEFAULT_MIYU_PROMPT), ("miyu_binary", "")):
+        data["settings"].setdefault(k, v)
     # 自带节点只播种一次：记下已经播过的 id，用户删掉的不再复活
     seeded = data.get("seeded_defaults")
     default_ids = list(default_state.get("profiles", {}).keys())
@@ -1430,6 +1608,7 @@ return {{
     max_time = {lua_num(settings.get('max_time', 30.0), 30.0)},
     max_history_bytes = {lua_num(settings.get('max_history_bytes', 240), 240)},
     cli_timeout = {lua_num(settings.get('cli_timeout', DEFAULT_CLI_TIMEOUT), DEFAULT_CLI_TIMEOUT)},
+    miyu_prefix = {lua_str(str(settings.get('miyu_prefix', DEFAULT_MIYU_PREFIX) or '').strip())},
     config_tool = {lua_str(os.path.realpath(sys.argv[0]))},
     tmp_dirs = {{ {", ".join(lua_str(d) for d in tmp_dirs)} }},
     debug_flag = {lua_str(DEBUG_FLAG)},
@@ -1616,6 +1795,7 @@ def print_help():
     print(t("cli_help_stat"))
     print(t("cli_help_debug"))
     print(t("cli_help_ask"))
+    print(t("cli_help_chat"))
     print(t("cli_help_catalog"))
     print(t("cli_help_h") + "\n")
 
@@ -1629,6 +1809,8 @@ def cli_handler():
             return True
         elif cmd == "ask":
             sys.exit(run_ask(sys.argv[2:]))
+        elif cmd == "chat":
+            sys.exit(run_chat(sys.argv[2:]))
         elif cmd == "sync":
             state = load_state(); out = export_to_lua(state)
             print(f"{L_OK} " + t("cli_sync_ok", out))
@@ -1661,6 +1843,18 @@ def cli_handler():
             print(f"  {pad_str(t('tui_st_temp'), 25)}: {s.get('temperature', 0.1)}")
             print(f"  {pad_str(t('tui_st_time'), 25)}: {s.get('max_time', 30.0)}")
             print(f"  {pad_str(t('tui_st_history_bytes'), 25)}: {s.get('max_history_bytes', 240)}")
+            prefix = str(s.get("miyu_prefix", DEFAULT_MIYU_PREFIX) or "").strip()
+            if prefix:
+                try:
+                    where = find_miyu(s)
+                except Exception as e:
+                    where = f"! {e}"
+                miyu_desc = (f"{prefix} → session '{s.get('miyu_session', DEFAULT_MIYU_SESSION)}', "
+                             f"{s.get('miyu_timeout', DEFAULT_MIYU_TIMEOUT)}s, "
+                             f"tools={'on' if s.get('miyu_tools') else 'off'}, {where}")
+            else:
+                miyu_desc = "off"
+            print(f"  {pad_str(t('cli_stat_miyu'), 25)}: {miyu_desc}")
 
             prompt = s.get("prompt", "None")
             print(f"\n{C_CYN}{C_BLD}[ {t('tui_st_prompt')} ]{C_RES}")
@@ -2451,6 +2645,7 @@ def run_app(stdscr):
             (t('tui_opt_edit'), "edit_profiles"),
             (t('tui_opt_settings'), "edit_settings"),
             (t('tui_opt_vocab'), "edit_vocab"),
+            (t('tui_opt_miyu', str(state["settings"].get("miyu_prefix", "") or "").strip() or t('tui_miyu_off')), "edit_miyu"),
             (t('tui_opt_export'), "export")
         ]
 
@@ -2485,7 +2680,7 @@ def run_app(stdscr):
                 {"label": t('tui_st_temp'), "value": str(s.get("temperature", 0.1))},
                 {"label": t('tui_st_time'), "value": str(s.get("max_time", 30.0))},
                 {"label": t('tui_st_history_bytes'), "value": str(s.get("max_history_bytes", 240))},
-                {"label": t('tui_st_cli_timeout'), "value": str(s.get("cli_timeout", DEFAULT_CLI_TIMEOUT))}
+                {"label": t('tui_st_cli_timeout'), "value": str(s.get("cli_timeout", DEFAULT_CLI_TIMEOUT))},
             ]
 
             res = form_dialog(stdscr, t('tui_st_title'), fields_config)
@@ -2496,6 +2691,31 @@ def run_app(stdscr):
                 s["max_time"] = float(res[4]) if res[4].replace('.','',1).isdigit() else 30.0
                 s["max_history_bytes"] = int(res[5]) if res[5].isdigit() else 240
                 s["cli_timeout"] = float(res[6]) if res[6].replace('.','',1).isdigit() else DEFAULT_CLI_TIMEOUT
+                save_state(state)
+
+        elif choice == "edit_miyu":
+            s = state["settings"]
+            try:
+                find_miyu(s)
+            except Exception as e:
+                msgbox(stdscr, t('msg_info'), t('tui_miyu_bad', e))
+            fields_miyu = [
+                {"label": t('tui_st_miyu_prefix'), "value": str(s.get("miyu_prefix", DEFAULT_MIYU_PREFIX) or "")},
+                {"label": t('tui_st_miyu_session'), "value": str(s.get("miyu_session", DEFAULT_MIYU_SESSION) or "")},
+                {"label": t('tui_st_miyu_timeout'), "value": str(s.get("miyu_timeout", DEFAULT_MIYU_TIMEOUT))},
+                {"label": t('tui_st_miyu_tools'), "value": t('tui_yes') if s.get("miyu_tools") else t('tui_no'),
+                 "type": "select", "options": [t('tui_no'), t('tui_yes')]},
+                {"label": t('tui_st_miyu_binary'), "value": str(s.get("miyu_binary", "") or "")},
+                {"label": t('tui_st_miyu_prompt'), "value": s.get("miyu_prompt", DEFAULT_MIYU_PROMPT), "type": "textarea"},
+            ]
+            res = form_dialog(stdscr, t('tui_miyu_title'), fields_miyu)
+            if res:
+                s["miyu_prefix"] = res[0].strip()
+                s["miyu_session"] = res[1].strip() or DEFAULT_MIYU_SESSION
+                s["miyu_timeout"] = float(res[2]) if res[2].replace('.','',1).isdigit() else DEFAULT_MIYU_TIMEOUT
+                s["miyu_tools"] = (res[3] == t('tui_yes'))
+                s["miyu_binary"] = res[4].strip()
+                s["miyu_prompt"] = res[5].strip() or DEFAULT_MIYU_PROMPT
                 save_state(state)
 
         elif choice == "edit_vocab":

@@ -2,7 +2,7 @@
 
 给Rime输入法接入大模型进行拼音联想，支持TUI图形化配置。平时正常输入，在遇到长难句或者生僻句的时候通过双击v键呼叫Ai对拼音进行处理。输入的时候不太需要考虑输入的拼音是否正确，大模型强大的预测功能会自动把误拼甚至乱序处理成正确的句子。对于句子中的英文词汇也能正常处理，甚至还能补充正确的空格和标点符号。
 
->甚至还能用输入法跟ai聊天。
+>甚至还能用输入法跟ai聊天，装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话还能用 `miyu:` 前缀直接找她说话。
 
 以下是无法正常输入，但Ai可以联想出来的例子：
 
@@ -111,11 +111,28 @@
 - 每次请求是一次性的，不带会话、不开工具、不写磁盘。CLI 线比直连 HTTP 慢：实测 claude sonnet 约 3 秒，codex / agy / opencode 约 7~10 秒，超时可在「全局参数设置 → CLI 后端超时」调整（默认 60 秒）。
 - Lua 侧走 CLI 时是调用 `rime-llm-config ask` 完成请求的，`rime-llm-config ask "拼音"` 也可以在终端里直接用来排查问题；`rime-llm-config debug` 的日志同样会记录 CLI 线的请求。
 
+## 跟 Miyu 聊天
+
+装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话，拼音以 `miyu:` 开头时不走当前供应商，而是直接把这句话发给 Miyu，她的回答作为第一个候选上屏。跟 `call:` 是两回事：`call:` 是让**当前节点**的模型帮你解决问题，`miyu:` 是找 **Miyu** 本人说话，两条线不会混。
+
+```
+miyu:xianzaijidian        →  晚上10点15分。
+miyu:wogangcaishuolesm    →  你说的是测试一下。
+```
+
+- 说的话进的是 Miyu 的一个固定会话（默认叫 `rime`，不存在就建），所以**前后文是连着的**，可以接着上一句问。想清空重开：`miyu session clear rime`。
+- 冒号后面的内容原样交给 Miyu，不参与提示词里 `cn:` / `jp:` / `moe:` 那套前缀组合。
+- 默认不给她工具、要求短答案纯文本，实测一问一答约 10 秒。回答太慢会按超时时间掐掉并显示错误候选。
+- 需要 Miyu 的 `ask` 支持 `--output-format` 和 `--session`（0.5.0 之后的程序驱动 CLI）。太旧的版本会被挡下并提示升级，不会把请求发出去。
+- 本机同时装了包管理器版和自编译版时，会自动挑够新的那个：设置里指定的路径 → PATH → `~/.local/bin` → `/usr/local/bin` → `/usr/bin`。fcitx5 拉起的进程 PATH 里常常没有 `~/.local/bin`，所以这一步不能只信 PATH。
+- 设置在 `rime-llm-config` 主菜单的「跟 Miyu 聊天」里：聊天前缀（**留空即关闭此功能**）、会话名、回复超时、是否允许她用工具、miyu 路径、宿主指令。
+- 终端里 `rime-llm-config chat "nihao"` 可以直接试，`rime-llm-config status` 会显示当前前缀、会话和选中的 miyu 路径。
+
 ## 编辑配置
 
 `rime-llm-config`是编辑配置的TUI工具。TUI 里每次保存都会顺手把 `config.lua` 导出一遍，HTTP 线（读 `config.lua`）和 CLI 线（读 `state.json`）用的提示词和词库因此始终一致。
 
-> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。
+> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。全局设置里跟 Miyu 聊天相关的字段：`miyu_prefix`、`miyu_session`、`miyu_timeout`、`miyu_tools`、`miyu_binary`、`miyu_prompt`。
 
 
 ![](pictures/TUI/mainmenu.png)

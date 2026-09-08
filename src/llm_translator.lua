@@ -588,6 +588,50 @@ local function curl_config_quote(s)
     return '"' .. string.gsub(string.gsub(s or "", "\\", "\\\\"), '"', '\\"') .. '"'
 end
 
+-- ------------------------------------------------------------------------------
+-- opencode Zen 的客户端识别头
+--
+-- Zen 服务端按这几个头分桶；一个都不带的请求被当成匿名客户端，额度是另一张表
+-- （第三方客户端「key 有效却狂吐 429」就是这么来的）。头名与取值取自 opencode
+-- 1.18.29 的实测抓包，不是从文档抄的——Zen 没文档化这套头。抓法见 Miyu 仓库的
+-- testkit/opencode-zen/capture_headers.py。有三处和网上流传的说法不一样，以抓包
+-- 为准：project 不在项目里时是字面量 global 而非随机 id；request 是用户消息 id、
+-- 一个回合内恒定而非每请求必换；User-Agent 是 opencode/<版本> ai-sdk/...
+-- runtime/bun/... 而非 opencode/latest/<版本>/cli。
+-- ------------------------------------------------------------------------------
+local OPENCODE_USER_AGENT = "opencode/1.18.29 ai-sdk/provider-utils/4.0.46 runtime/bun/1.4.0"
+local OPENCODE_ID_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+local opencode_session = nil
+local opencode_seeded = false
+
+-- 前缀 + 26 位（12 位时间序十六进制 + 14 位 base62），与抓包同形。
+local function opencode_id(prefix)
+    if not opencode_seeded then
+        math.randomseed(os.time() + math.floor(os.clock() * 1000000))
+        opencode_seeded = true
+    end
+    local tail = {}
+    for _ = 1, 14 do
+        local index = math.random(#OPENCODE_ID_ALPHABET)
+        tail[#tail + 1] = string.sub(OPENCODE_ID_ALPHABET, index, index)
+    end
+    return string.format("%s_%012x%s", prefix, (os.time() * 1000) % 0x1000000000000, table.concat(tail))
+end
+
+-- 发往 Zen 时要追加进 curl 配置的行；不是 Zen 端点返回空表。
+local function opencode_zen_curl_lines(api_url)
+    if not string.find(api_url or "", "opencode.ai/zen", 1, true) then return {} end
+    -- 会话 id 一次运行一个——opencode 自己也是一次 run 一个。
+    if not opencode_session then opencode_session = opencode_id("ses") end
+    return {
+        "user-agent = " .. curl_config_quote(OPENCODE_USER_AGENT),
+        "header = \"x-opencode-client: cli\"",
+        "header = \"x-opencode-project: global\"",
+        "header = " .. curl_config_quote("x-opencode-session: " .. opencode_session),
+        "header = " .. curl_config_quote("x-opencode-request: " .. opencode_id("msg")),
+    }
+end
+
 local function http_request(cfg, profile, protocol, body_json)
     local dir = pick_tmp_dir(cfg)
     local body_path = tmp_path(dir, ".json")
@@ -606,6 +650,9 @@ local function http_request(cfg, profile, protocol, body_json)
         lines[#lines + 1] = "header = \"anthropic-version: 2023-06-01\""
     else
         lines[#lines + 1] = "header = " .. curl_config_quote("Authorization: Bearer " .. profile.api_key)
+    end
+    for _, line in ipairs(opencode_zen_curl_lines(profile.api_url)) do
+        lines[#lines + 1] = line
     end
     if not write_file(conf_path, table.concat(lines, "\n") .. "\n") then
         os.remove(body_path)
@@ -887,4 +934,6 @@ return {
     _chat_text_of = chat_text_of,
     _strip_base_prefix = strip_base_prefix,
     _base64_encode = base64_encode,
+    _http_request = http_request,
+    _opencode_zen_curl_lines = opencode_zen_curl_lines,
 }

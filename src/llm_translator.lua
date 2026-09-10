@@ -10,6 +10,14 @@
 --   · 拼音以聊天前缀（默认 miyu:）开头时不走当前节点，而是交给 rime-llm-config chat
 --     去跟 Miyu 的固定会话对话（call: 仍然是问当前供应商，两者互不混淆）
 --
+-- 省 token 的几条约定（改这个文件时别破坏）：
+--   · system 分成「常驻核心 + 按需追加」两截。核心逐字节恒定，DeepSeek / OpenAI 的自动
+--     前缀缓存和 Anthropic 的 cache_control 全靠它，所以随输入变化的东西（命中的前缀
+--     规则、命中的词库）只能追加在核心之后，绝不能插进核心里
+--   · 前缀规则由 rime-llm-config 从提示词里切好放进 config.lua，这里只按命中情况拼装；
+--     认不出前缀就整份发送，行为回到从前
+--   · 失败进 5 秒负缓存，无前缀的长句结果进跨会话落盘缓存，两者都是为了别重复付钱
+--
 -- rime.lua 里写：
 --   llm_translator = require("llm_translator")
 --   llm_processor  = llm_translator.processor
@@ -461,16 +469,24 @@ local function push_history(text, max_bytes)
     end
 end
 
--- 缓存里以这个字节开头的值表示「这一问已经转后台了」，不是答案
+-- 缓存里以这两个字节开头的值不是答案：BG 表示「这一问已经转后台了」，ERR 表示「刚问过、失败了」
 local BG_MARK = "\1"
+local ERR_MARK = "\2"
+local ERROR_TTL = 5   -- 失败也进缓存，免得 Rime 重建候选菜单时把同一个失败请求反复发出去
 local REPLY_CACHE_SIZE = 16
 local reply_cache = { order = {}, map = {} }
 
 local function cache_get(key)
-    return reply_cache.map[key]
+    local entry = reply_cache.map[key]
+    if type(entry) ~= "table" then return nil end
+    if entry.exp and os.time() > entry.exp then
+        reply_cache.map[key] = nil
+        return nil
+    end
+    return entry.v
 end
 
-local function cache_put(key, value)
+local function cache_put(key, value, ttl)
     if reply_cache.map[key] == nil then
         table.insert(reply_cache.order, key)
         if #reply_cache.order > REPLY_CACHE_SIZE then
@@ -478,7 +494,112 @@ local function cache_put(key, value)
             reply_cache.map[old] = nil
         end
     end
-    reply_cache.map[key] = value
+    reply_cache.map[key] = { v = value, exp = ttl and (os.time() + ttl) or nil }
+end
+
+-- ==============================================================================
+-- 跨会话结果缓存：同一句拼音再打一遍直接命中，0 token。
+-- 只收「无前缀的纯拼音转换」结果：call: / sh: 这类每次都该重新生成；拼音也要够长——
+-- ta、shi 这种换个上下文就是另一个词，缓存住反而是错的。
+-- ==============================================================================
+local disk_cache = { loaded = false, map = {}, dirty = false }
+
+local function disk_cache_on(cfg)
+    return cfg.reply_cache_disk ~= false
+        and type(cfg.reply_cache_file) == "string" and cfg.reply_cache_file ~= ""
+end
+
+local function disk_cache_load(cfg)
+    if disk_cache.loaded then return disk_cache.map end
+    disk_cache.loaded = true
+    local f = io.open(cfg.reply_cache_file, "r")
+    if f then
+        local raw = f:read("*a") or ""
+        f:close()
+        local ok, obj = pcall(json.decode, raw)
+        if ok and type(obj) == "table" and type(obj.entries) == "table" then
+            disk_cache.map = obj.entries
+        end
+    end
+    return disk_cache.map
+end
+
+local function disk_cache_flush(cfg)
+    if not disk_cache.dirty then return end
+    local ok, encoded = pcall(json.encode, { entries = disk_cache.map })
+    if not ok then return end
+    local tmp = cfg.reply_cache_file .. ".tmp"
+    if write_file(tmp, encoded) then
+        -- rename 在 POSIX 上是原子替换，不要先 remove——那会留出一个文件不存在的窗口
+        if os.rename(tmp, cfg.reply_cache_file) then disk_cache.dirty = false else os.remove(tmp) end
+    end
+end
+
+-- 够长、无前缀的纯转换才进缓存
+local function disk_cache_usable(cfg, send_text, prefix_count)
+    if not disk_cache_on(cfg) then return false end
+    if (prefix_count or 0) > 0 then return false end
+    return #send_text >= (tonumber(cfg.reply_cache_min_len) or 8)
+end
+
+local function disk_cache_get(cfg, key)
+    local entry = disk_cache_load(cfg)[key]
+    if type(entry) ~= "table" or type(entry.t) ~= "string" or entry.t == "" then return nil end
+    return entry.t
+end
+
+local function disk_cache_put(cfg, key, text)
+    local map = disk_cache_load(cfg)
+    map[key] = { t = text, at = os.time() }
+    disk_cache.dirty = true
+    local max = tonumber(cfg.reply_cache_max) or 500
+    local n = 0
+    for _ in pairs(map) do n = n + 1 end
+    if n > max then
+        local aged = {}
+        for k, v in pairs(map) do
+            aged[#aged + 1] = { k = k, at = (type(v) == "table" and tonumber(v.at)) or 0 }
+        end
+        table.sort(aged, function(a, b) return a.at < b.at end)
+        for i = 1, n - max do map[aged[i].k] = nil end
+    end
+    disk_cache_flush(cfg)
+end
+
+-- ==============================================================================
+-- token 用量：每次 HTTP 请求把响应里的 usage 累加进 usage.json，`rime-llm-config usage` 看
+-- ==============================================================================
+local function record_usage(cfg, profile_id, profile, usage)
+    local path = cfg.usage_file
+    if type(path) ~= "string" or path == "" or type(usage) ~= "table" then return end
+    local stats = { since = os.time(), requests = 0, prompt = 0, cached = 0, completion = 0,
+        recent = setmetatable({}, json.array_mt) }
+    local f = io.open(path, "r")
+    if f then
+        local raw = f:read("*a") or ""
+        f:close()
+        local ok, obj = pcall(json.decode, raw)
+        if ok and type(obj) == "table" then
+            stats.since = tonumber(obj.since) or stats.since
+            stats.requests = tonumber(obj.requests) or 0
+            stats.prompt = tonumber(obj.prompt) or 0
+            stats.cached = tonumber(obj.cached) or 0
+            stats.completion = tonumber(obj.completion) or 0
+            if type(obj.recent) == "table" then stats.recent = obj.recent end
+        end
+    end
+    stats.requests = stats.requests + 1
+    stats.prompt = stats.prompt + (usage["in"] or 0)
+    stats.cached = stats.cached + (usage.cached or 0)
+    stats.completion = stats.completion + (usage.out or 0)
+    stats.recent[#stats.recent + 1] = { t = os.time(), ["in"] = usage["in"] or 0,
+        cached = usage.cached or 0, out = usage.out or 0,
+        p = profile.name or profile_id, m = profile.model or "" }
+    while #stats.recent > 20 do table.remove(stats.recent, 1) end
+    local ok, encoded = pcall(json.encode, stats)
+    if not ok then return end
+    local tmp = path .. ".tmp"
+    if write_file(tmp, encoded) and not os.rename(tmp, path) then os.remove(tmp) end
 end
 
 -- ==============================================================================
@@ -554,16 +675,196 @@ local function effective_protocol(profile)
     return "openai-chat"
 end
 
-local function build_body(cfg, profile, protocol, system_prompt, user_content)
+-- ==============================================================================
+-- 提示词分层：常驻核心 + 按需注入
+--
+-- 核心（职责 / 注意点 / 严格遵守）逐字节恒定——DeepSeek、OpenAI 的自动前缀缓存和
+-- Anthropic 的 cache_control 全靠这一点，所以随输入变化的东西（命中的前缀规则、命中的
+-- 词库）一律**追加在核心之后**，绝不插回原位。
+-- 切分由 rime-llm-config 在导出 config.lua 时完成；老 config.lua 没有 prompt_core，
+-- 这里自动退回「整份发送」的旧行为。
+-- ==============================================================================
+
+-- 从左贪婪切出已知前缀词；切不动的位置起，剩下的整块当作未知
+-- `jpkr` → { "jp" }, "kr"：jp 照常注入规则，kr 走兜底，不会因为一个不认识就整段放弃
+local function split_known(seg, words)
+    local parts, pos = {}, 1
+    while pos <= #seg do
+        local best = ""
+        for _, w in ipairs(words) do
+            if #w > #best and string.sub(seg, pos, pos + #w - 1) == w then best = w end
+        end
+        if best == "" then return parts, string.sub(seg, pos) end
+        parts[#parts + 1] = best
+        pos = pos + #best
+    end
+    return parts, ""
+end
+
+-- 输入开头用到了哪些前缀：认识的进 hits，认不出的进 unknown（走兜底规则）
+local function analyze_prefix(cfg, text)
+    local order = cfg.rule_words or {}
+    local segs = split_prefix(text)
+    local info = { hits = {}, unknown = {}, count = #segs }
+    if #segs == 0 then return info end
+    local known = {}
+    for _, w in ipairs(order) do known[w] = true end
+    local seen, seen_unknown = {}, {}
+    for _, seg in ipairs(segs) do
+        local parts, rest
+        if known[seg] then parts, rest = { seg }, "" else parts, rest = split_known(seg, order) end
+        for _, w in ipairs(parts) do
+            if not seen[w] then
+                seen[w] = true
+                info.hits[#info.hits + 1] = w
+            end
+        end
+        if rest ~= "" and not seen_unknown[rest] then
+            seen_unknown[rest] = true
+            info.unknown[#info.unknown + 1] = rest
+        end
+    end
+    return info
+end
+
+-- 词库：只贴正文里真出现的条目（拼法与 rime-llm-config 的 vocab_block 一致）
+local function vocab_text(cfg, text)
+    local v = cfg.vocab
+    if type(v) ~= "table" then return cfg.vocab_prompt or "" end
+    local pick = cfg.vocab_inject ~= "always" and type(text) == "string"
+    local low = pick and string.lower(text) or ""
+    local terms, maps = {}, {}
+    for _, w in ipairs(v.terms or {}) do
+        if not pick or string.find(low, string.lower(w), 1, true) then terms[#terms + 1] = w end
+    end
+    for _, kv in ipairs(v.maps or {}) do
+        if not pick or string.find(low, string.lower(kv[1]), 1, true) then maps[#maps + 1] = kv end
+    end
+    if #terms == 0 and #maps == 0 then return "" end
+    local out = { "\n" .. (v.title or "# 用户词库") }
+    if #terms > 0 then
+        out[#out + 1] = "\n" .. (v.terms_head or "")
+        out[#out + 1] = "\n" .. table.concat(terms, "、")
+    end
+    if #maps > 0 then
+        out[#out + 1] = "\n" .. (v.maps_head or "")
+        for _, kv in ipairs(maps) do out[#out + 1] = "\n" .. kv[1] .. "=" .. kv[2] end
+    end
+    return table.concat(out)
+end
+
+-- 这次要注入的前缀规则文本（命中的规则 + 认不出的兜底 + 需要时的组合规则）
+local function prefix_instructions(cfg, pinfo)
+    local rules = cfg.prompt_rules
+    if type(rules) ~= "table" then return "" end
+    local all = cfg.prefix_inject == "always"
+    local picked, unknown = {}, {}
+    if all then
+        for _, w in ipairs(cfg.rule_words or {}) do
+            if rules[w] then picked[#picked + 1] = w end
+        end
+    else
+        for _, w in ipairs(pinfo.hits) do
+            if rules[w] then picked[#picked + 1] = w end
+        end
+        unknown = pinfo.unknown
+    end
+    local lines = {}
+    for _, w in ipairs(picked) do lines[#lines + 1] = rules[w] end
+    local fallback = cfg.prompt_fallback
+    if type(fallback) == "string" and fallback ~= "" then
+        -- 认不出的前缀（`kr:`）给一条通则，比把整篇提示词砸过去又便宜又管用
+        for _, u in ipairs(unknown) do
+            lines[#lines + 1] = (string.gsub(fallback, "{p}", u))
+        end
+    end
+    if #lines == 0 then return "" end
+    if cfg.prompt_combo and cfg.prompt_combo ~= "" and (all or #picked + #unknown >= 2) then
+        lines[#lines + 1] = cfg.prompt_combo
+    end
+    local head = cfg.prompt_rules_head
+    if head and head ~= "" then table.insert(lines, 1, head) end
+    return table.concat(lines, "\n")
+end
+
+local function position_of(cfg)
+    local pos = cfg.prefix_position
+    if pos == "system" or pos == "user_after" then return pos end
+    return "user_before"
+end
+
+-- 返回 (常驻核心, 按需追加)。核心逐字节恒定，缓存全靠它
+local function compose_system(cfg, text, pinfo, instructions)
+    local core = cfg.prompt_core
+    if type(core) ~= "string" or core == "" then
+        return (cfg.prompt or "") .. (cfg.vocab_prompt or ""), ""
+    end
+    local extra = ""
+    if instructions ~= "" and position_of(cfg) == "system" then extra = "\n" .. instructions end
+    return core, extra .. vocab_text(cfg, text)
+end
+
+-- user 正文：上文 + 当前输入，规则按配置贴在输入前或输入后
+local function build_user_content(cfg, send_text, history_text, instructions)
+    local body = send_text
+    if history_text ~= "" then
+        body = string.format("【历史输入】：%s\n【当前输入】：%s", history_text, send_text)
+    end
+    if instructions == "" then return body end
+    local pos = position_of(cfg)
+    if pos == "user_before" then return instructions .. "\n\n" .. body end
+    if pos == "user_after" then return body .. "\n\n" .. instructions end
+    return body
+end
+
+-- `call:` / `cmd:` / `sh:` 是在提问，之前打过的字是噪音，不带上文
+local function history_wanted(cfg, pinfo)
+    local banned = cfg.no_history_prefixes
+    if type(banned) ~= "table" or #banned == 0 then return true end
+    local set = {}
+    for _, w in ipairs(banned) do set[w] = true end
+    for _, w in ipairs(pinfo.hits) do
+        if set[w] then return false end
+    end
+    return true
+end
+
+-- 无前缀的纯转换给一个按拼音长度算的输出上限。注意：max_tokens 是上限不是预留额，正常
+-- 情况按实际生成的量计费，所以这一条**省不到 token**，它只是模型跑飞时的止损。反过来风险
+-- 是实打实的：不少模型默认就会思考，思考 token 也算在 max_tokens 里，额度小了会在吐出正文
+-- 之前就被截断（实测 opencode zen 的 big-pickle 就这样返回空）。所以默认关闭，开了也给足。
+local function max_tokens_for(cfg, profile, send_text, pinfo)
+    local configured = profile.max_tokens or cfg.max_tokens or 4000
+    if cfg.adaptive_max_tokens ~= true or pinfo.count > 0 then return configured end
+    local think = profile.thinking
+    if think and think ~= "" and think ~= "off" then return configured end
+    local n = #send_text * 8
+    if n < 512 then n = 512 end
+    if n > configured then n = configured end
+    return n
+end
+
+local function build_body(cfg, profile, protocol, system_core, system_extra, user_content, send_text, pinfo)
     local body = { model = profile.model }
-    local max_tokens = profile.max_tokens or cfg.max_tokens or 4000
-    body.max_tokens = max_tokens
+    body.max_tokens = max_tokens_for(cfg, profile, send_text or "", pinfo or { count = 1 })
+    system_extra = system_extra or ""
     if protocol == "anthropic" then
-        body.system = system_prompt
+        -- 核心单独成块并打上 cache_control：命中按 0.1x 计价。Anthropic 有最短可缓存长度
+        -- （多数模型 1024 token），核心比它短时这个标记会被忽略，不报错也不多花钱。
+        -- 有中转不认 system 的数组写法，关掉「标记提示词可缓存」就退回纯字符串。
+        if cfg.prompt_cache_mark == false then
+            body.system = system_core .. system_extra
+        else
+            local blocks = { { type = "text", text = system_core, cache_control = { type = "ephemeral" } } }
+            if system_extra ~= "" then
+                blocks[#blocks + 1] = { type = "text", text = system_extra }
+            end
+            body.system = blocks
+        end
         body.messages = { { role = "user", content = user_content } }
     else
         body.messages = {
-            { role = "system", content = system_prompt },
+            { role = "system", content = system_core .. system_extra },
             { role = "user", content = user_content },
         }
     end
@@ -674,7 +975,28 @@ local function http_request(cfg, profile, protocol, body_json)
     return response or "", nil
 end
 
--- 从响应 JSON 里取正文；返回 (text, err)
+-- 响应里的 token 用量，两种协议字段名不一样；统一成 in / cached / out
+local function extract_usage(protocol, data)
+    local u = data.usage
+    if type(u) ~= "table" then return nil end
+    if protocol == "anthropic" then
+        local cached = tonumber(u.cache_read_input_tokens) or 0
+        return {
+            ["in"] = (tonumber(u.input_tokens) or 0) + cached + (tonumber(u.cache_creation_input_tokens) or 0),
+            cached = cached,
+            out = tonumber(u.output_tokens) or 0,
+        }
+    end
+    local details = type(u.prompt_tokens_details) == "table" and u.prompt_tokens_details or {}
+    return {
+        ["in"] = tonumber(u.prompt_tokens) or 0,
+        -- DeepSeek 给 prompt_cache_hit_tokens，OpenAI 系给 prompt_tokens_details.cached_tokens
+        cached = tonumber(u.prompt_cache_hit_tokens) or tonumber(details.cached_tokens) or 0,
+        out = tonumber(u.completion_tokens) or 0,
+    }
+end
+
+-- 从响应 JSON 里取正文；返回 (text, err, usage)
 local function extract_reply(protocol, response)
     local ok, data = pcall(json.decode, response)
     if not ok or type(data) ~= "table" then
@@ -709,34 +1031,45 @@ local function extract_reply(protocol, response)
             end
         end
     end
+    local usage = extract_usage(protocol, data)
     local text = strip_think(table.concat(parts, ""))
-    if text == "" then return nil, "空回复" end
-    return text, nil
+    if text == "" then return nil, "空回复", usage end
+    return text, nil, usage
 end
 
-local function ask_http_backend(cfg, profile, send_text, history_text)
+local function ask_http_backend(cfg, profile_id, profile, send_text, history_text, pinfo)
     if not profile.api_url or profile.api_url == "" then return nil, "API 地址为空，请配置" end
     if not profile.api_key or profile.api_key == "" then return nil, "API Key 为空，请配置" end
     if not profile.model or profile.model == "" then return nil, "模型为空，请配置" end
 
     local protocol = effective_protocol(profile)
-    local system_prompt = (cfg.prompt or "") .. (cfg.vocab_prompt or "")
-    local user_content = send_text
-    if history_text ~= "" then
-        user_content = string.format("【历史输入】：%s\n【当前用户输入（如果由call开头说明是指令）】：%s", history_text, send_text)
-    end
-    local body = build_body(cfg, profile, protocol, system_prompt, user_content)
+    local instructions = prefix_instructions(cfg, pinfo)
+    local core, extra = compose_system(cfg, send_text, pinfo, instructions)
+    local user_content = build_user_content(cfg, send_text, history_text, instructions)
+    local body = build_body(cfg, profile, protocol, core, extra, user_content, send_text, pinfo)
     local body_json = json.encode(body)
 
     local response, err = http_request(cfg, profile, protocol, body_json)
-    debug_log(cfg, {
+    local lines = {
         "【节点模型】 " .. (profile.name or "Unknown") .. " (" .. tostring(body.model) .. ", " .. protocol .. ")",
         "【发出的 JSON】", body_json, "",
         "【收到的 Raw 返回】", tostring(response or err or "nil"),
-    })
+    }
+    local text, rerr, usage
+    if not err and response ~= "" then
+        text, rerr, usage = extract_reply(protocol, response)
+        if usage then
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = string.format(
+                "【用量】 输入 %d (其中缓存命中 %d) / 输出 %d ｜ system 核心 %d 字节 + 按需 %d 字节 ｜ max_tokens %s",
+                usage["in"] or 0, usage.cached or 0, usage.out or 0, #core, #extra, tostring(body.max_tokens))
+            record_usage(cfg, profile_id, profile, usage)
+        end
+    end
+    debug_log(cfg, lines)
     if err then return nil, err end
     if response == "" then return nil, "⏳ 请求超时无响应" end
-    return extract_reply(protocol, response)
+    return text, rerr
 end
 
 -- ==============================================================================
@@ -827,28 +1160,52 @@ local function translator_func(input, seg, env)
         return
     end
 
+    -- 前缀只判断"出现了哪几个"，它们的语义仍然写在提示词里由模型理解
+    local pinfo = analyze_prefix(cfg, send_text)
+    local name = profile.name or "AI"
     local history_text = table.concat(commit_history, "")
+    if not history_wanted(cfg, pinfo) then history_text = "" end
+
     local cache_key = table.concat({ profile_id, tostring(profile.model), tostring(profile.request_extra),
         tostring(want_base64), send_text, history_text }, "\0")
     local cached = cache_get(cache_key)
     if cached then
-        yield(llm_candidate(seg, cached, "✨ " .. (profile.name or "AI")))
+        if string.sub(cached, 1, 1) == ERR_MARK then
+            yield_error(seg, send_text, string.sub(cached, 2))
+        else
+            yield(llm_candidate(seg, cached, "✨ " .. name))
+        end
         return
     end
 
-    local text, err
-    if CLI_PROTOCOLS[profile.protocol or ""] then
-        text, err = ask_cli_backend(cfg, profile_id, profile, send_text, history_text)
-    else
-        text, err = ask_http_backend(cfg, profile, send_text, history_text)
+    -- 跨会话缓存收的是模型原话，base64 编码在这之后做
+    local disk_key, text, err
+    if disk_cache_usable(cfg, send_text, pinfo.count) then
+        -- 带上提示词/词库的指纹：改了提示词之后旧答案自然失效，不会拿旧的糊弄人
+        disk_key = table.concat({ profile_id, tostring(profile.model),
+            tostring(profile.request_extra), tostring(cfg.prompt_stamp), send_text }, "\0")
+        text = disk_cache_get(cfg, disk_key)
+    end
+    local from_disk = text ~= nil
+
+    if not from_disk then
+        if CLI_PROTOCOLS[profile.protocol or ""] then
+            text, err = ask_cli_backend(cfg, profile_id, profile, send_text, history_text)
+        else
+            text, err = ask_http_backend(cfg, profile_id, profile, send_text, history_text, pinfo)
+        end
     end
 
     if text and text ~= "" then
+        if disk_key and not from_disk then disk_cache_put(cfg, disk_key, text) end
         if want_base64 then text = base64_encode(text) end
         cache_put(cache_key, text)
-        yield(llm_candidate(seg, text, "✨ " .. (profile.name or "AI")))
+        yield(llm_candidate(seg, text, "✨ " .. name .. (from_disk and " ·缓存" or "")))
     else
-        yield_error(seg, send_text, err or "未知错误")
+        -- 失败也进缓存（5 秒）：Rime 重建候选菜单时不会把同一个失败请求再发一遍
+        local msg = tostring(err or "未知错误")
+        cache_put(cache_key, ERR_MARK .. msg, ERROR_TTL)
+        yield_error(seg, send_text, msg)
     end
 end
 
@@ -932,6 +1289,15 @@ return {
     _extract_reply = extract_reply,
     _effective_protocol = effective_protocol,
     _chat_text_of = chat_text_of,
+    _analyze_prefix = analyze_prefix,
+    _compose_system = compose_system,
+    _prefix_instructions = prefix_instructions,
+    _build_user_content = build_user_content,
+    _split_known = split_known,
+    _vocab_text = vocab_text,
+    _history_wanted = history_wanted,
+    _max_tokens_for = max_tokens_for,
+    _extract_usage = extract_usage,
     _strip_base_prefix = strip_base_prefix,
     _base64_encode = base64_encode,
     _http_request = http_request,

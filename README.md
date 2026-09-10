@@ -139,11 +139,84 @@ miyu:wogangcaishuolesm    →  你说的是测试一下。
 - 设置在 `rime-llm-config` 主菜单的「跟 Miyu 聊天」里：聊天前缀（**留空即关闭此功能**）、会话名、回复超时、输入法等待、是否允许她用工具、miyu 路径、宿主指令。
 - 终端里 `rime-llm-config chat "nihao"` 可以直接试，`rime-llm-config status` 会显示当前前缀、会话和选中的 miyu 路径。
 
+## 省 token
+
+每按一次触发键就是一次完整请求，固定开销全在系统提示词上。程序把提示词拆成**常驻核心**和**按需片段**两截，只发用得上的那部分：
+
+| | 旧行为 | 现在 |
+|---|---|---|
+| 普通一句拼音 | 提示词全文 + 整个词库 | 只发核心（约 450 字） |
+| `jp:` / `call:` 等带前缀 | 同上 | 核心 + 命中的那一条前缀规则 |
+| 多个前缀（`jpmoe:`） | 同上 | 核心 + 命中的几条 + 组合规则 |
+| 自定义词库 | 每次全发 | 只发正文里真出现的条目 |
+
+`# 特殊行为`那一整段（各前缀的定义 + 组合规则）占了提示词的六成，可绝大多数输入是不带前缀的纯拼音，根本用不上，所以它只在输入真带了某个前缀时才贴回去。词库同理，`mrfz` 只在拼音里出现 `mrfz` 时才发——**词库规模从此和单次成本脱钩，想加几百条都不涨价**。
+
+> 前缀规则不再写在提示词里，是独立的配置，见下面的「前缀行为」一节。
+
+**别把缓存前缀搞坏。** DeepSeek、OpenAI 的自动前缀缓存和 Anthropic 的 `cache_control` 都要求前缀逐字节一致，所以按需内容一律**追加在核心之后**，核心永远是同一串字节。Anthropic 线还会给核心块打上 `cache_control`（命中按 0.1x 计价）；有中转不认 `system` 的数组写法，把「标记提示词可缓存」关掉即可退回纯字符串。
+
+另外几处：
+
+- **上文**：`call:` / `cmd:` / `sh:` 是在提问，之前打过的字是噪音，这几个前缀不带上文（可在设置里改）。
+- **输出上限**（默认关）：`max_tokens` 是上限不是预留额，正常情况按实际生成的量计费，所以这一条**省不到 token**，只是模型跑飞时的止损。开了之后无前缀的纯转换按拼音长度给上限（下限 512），带前缀和配了思考档的节点仍用配置值。风险是实打实的：不少模型默认就会思考，思考 token 也算在 `max_tokens` 里，额度小了会在吐出正文之前被截断（实测 opencode zen 的 `big-pickle` 就这样返回空）。想开就自己确认模型不吃这一套。
+- **失败不重复付钱**：请求失败进 5 秒负缓存，Rime 重建候选菜单时不会把同一个失败请求反复发出去。
+- **跨会话缓存**：同一句拼音再打一遍直接命中，0 token，候选注释显示 `·缓存`。只收无前缀、够长（默认 ≥8 个字母）的纯转换结果——`ta`、`shi` 这种换个上下文就是另一个词，缓存住反而是错的；`call:` 这类每次都该重新生成。存在 `~/.cache/rime-llm-translator/replies.json`。
+
+### 看效果
+
+```
+rime-llm-config usage           # 累计请求数、输入/输出 token、缓存命中率、最近 10 次
+rime-llm-config usage --reset   # 清零重新数
+```
+
+数字取自每次响应里的 `usage` 字段（DeepSeek 的 `prompt_cache_hit_tokens`、OpenAI 系的 `prompt_tokens_details.cached_tokens`、Anthropic 的 `cache_read_input_tokens` 都认），`rime-llm-config debug` 的日志里也会逐条记录。
+
+以上开关都在 `rime-llm-config` 主菜单的「省 token 与缓存」里。程序自带的默认提示词也按这套结构重写过（1514 字 → 899 字），老用户的提示词不会被动；想换成新版：菜单里勾「恢复精简版默认提示词」，或者 `rime-llm-config reset-prompt`（会先备份 `state.json`）。
+
+## 前缀行为
+
+`jp:woshizhongguoren` → 私は中国人です。冒号前面那几个字母决定这次要模型做什么。
+
+以前这些规则是写在提示词里的几行字，程序不认识它们。现在**程序要按前缀决定注入什么**，前缀就成了一等公民，所以拆成了独立配置：`rime-llm-config` 主菜单 →「前缀行为」。
+
+- **前缀规则**：一张 `前缀 → 规则` 的表，加一条 `kr:` 就是加一条，不用管 markdown 格式。
+- **前缀组合规则**：讲 `jpmoe:` 这类组合怎么理解，只在一次命中两个及以上前缀时才发。
+- **未知前缀兜底**：遇到表里没有的前缀（`kr:` `fr:`）发这一条，`{p}` 会被替换成实际的前缀。留空则关闭。
+- **规则注入位置**：见下。
+
+> 老配置会**自动迁移**：第一次运行时把提示词里的规则段切出来填进这张表，提示词只留核心，`state.json` 先备份。你自己改过措辞的规则原样保留，没改过的（跟自带版本一字不差）换成重写后的版本。
+
+### 规则写法：约束输出，别描述过程
+
+这是实测踩出来的坑。老的 `jp:` 规则是「将拼音转换成中文**再次翻译**为日文后输出」——字面上就是两步，模型会老老实实把两步都输出：
+
+```
+jp:wwoxiangchishousi  →  我想吃寿司
+                          私は寿司が食べたいです     ← 中间结果也上屏了
+```
+
+改成「**只输出**日文译文。不要输出中间的中文」之后，同样的输入 6/6 干净。自带的七条规则都按这个原则重写过了。
+
+### 规则注入位置
+
+同一条规则放在上下文的不同位置，约束力差很多。实测（deepseek-flash，`jp:` `kr:` `eng:` `cmd:` 共 33 次采样）：
+
+| 位置 | 命中 | 说明 |
+|---|---|---|
+| 输入之后（默认） | **33/33** | 规则紧跟在拼音后面 |
+| 输入之前 | 27/33 | |
+| 系统提示词末尾 | 12/15 | 未知前缀兜底几乎完全失效 |
+
+差距集中在**没有预定义规则的前缀**上。`kr:woshizhongguoren` 这一条，规则放输入前 6 次错 5 次，放输入后 6 次全对——开头那句「你是中文拼音输入法引擎」定性太强，规则离输入越远越压不住。已经预定义好的 `jp:` `eng:` 三种位置都是满分，所以你要是只用自带的那几个前缀，这一项怎么设都行。
+
+顺带一个好处：规则放进 user 消息之后，**system 就只剩恒定的核心了**，缓存前缀稳定性拉满。
+
 ## 编辑配置
 
 `rime-llm-config`是编辑配置的TUI工具。TUI 里每次保存都会顺手把 `config.lua` 导出一遍，HTTP 线（读 `config.lua`）和 CLI 线（读 `state.json`）用的提示词和词库因此始终一致。
 
-> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。全局设置里跟 Miyu 聊天相关的字段：`miyu_prefix`、`miyu_session`、`miyu_timeout`、`miyu_wait`、`miyu_tools`、`miyu_binary`、`miyu_prompt`。
+> 如果你要手动编辑配置文件请编辑`~/.config/rime-llm-translator/state.json`后用`rime-llm-config sync`命令同步至`config.lua`。每个节点可用的字段：`protocol`（`auto` / `openai-chat` / `anthropic` / 各 CLI）、`api_url`、`api_key`、`model`、`thinking`（按模型存档位 id，如 `{"deepseek-v4-flash": "max"}`）、`extra_body`（原样并进请求体的私有字段）、`model_temperature`（按模型覆盖发散度）。全局设置里跟 Miyu 聊天相关的字段：`miyu_prefix`、`miyu_session`、`miyu_timeout`、`miyu_wait`、`miyu_tools`、`miyu_binary`、`miyu_prompt`。全局设置里跟省 token 相关的字段：`prefix_inject`、`vocab_inject`（`auto` 按需 / `always` 全发）、`no_history_prefixes`、`adaptive_max_tokens`、`prompt_cache_mark`、`reply_cache_disk`、`reply_cache_min_len`、`reply_cache_max`。前缀行为是顶层的 `prefixes` 对象：`rules`（`[{key, rule}, …]`，有序）、`combo`、`fallback`（含 `{p}` 占位符），注入位置是 `settings.prefix_position`（`user_after` / `user_before` / `system`）。
 
 
 ![](pictures/TUI/mainmenu.png)
@@ -172,7 +245,7 @@ miyu:wogangcaishuolesm    →  你说的是测试一下。
 
   这里可以对系统提示词和模型参数进行配置。`历史上下文容量`指的是记录多少之前输入过的内容，用于提高ai的联想质量。
 
-  拼音里的 `call:` `jp:` `moe:` 这类前缀是**写在提示词里让模型自己识别**的，想加想改直接改提示词就行，程序不认识它们，也不需要认识。唯一的例外是 `base:`：base64 是确定性计算，模型算既慢又容易错，所以这一条被程序接管了。收到 `base:` 时先把这两个字从前缀里摘掉，模型只负责把拼音变成中文，编码由程序做，结果不会错。组合照样成立，`base:jp:woshizhongguoren` 得到的是「私は中国人です」的 base64，连写的 `basejp:` 和 `jpbase:` 也认。
+  提示词这里只放**核心**（职责 / 注意点 / 严格遵守）。`call:` `jp:` `moe:` 这类前缀的行为规则搬到了「前缀行为」里单独配置，见下一节。`base:`：base64 是确定性计算，模型算既慢又容易错，所以这一条被程序接管了。收到 `base:` 时先把这两个字从前缀里摘掉，模型只负责把拼音变成中文，编码由程序做，结果不会错。组合照样成立，`base:jp:woshizhongguoren` 得到的是「私は中国人です」的 base64，连写的 `basejp:` 和 `jpbase:` 也认。
 
 - 自定义词库
 

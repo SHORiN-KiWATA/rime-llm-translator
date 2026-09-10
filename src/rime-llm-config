@@ -20,6 +20,7 @@ import tempfile
 import time
 import select
 import base64
+import hashlib
 
 # ==========================================
 # 🌐 国际化与双语支持 (I18N)
@@ -48,6 +49,8 @@ I18N = {
         "cli_help_ask": "  ask <text>       : One-shot answer via the active node (used by Lua for CLI backends).",
         "cli_help_chat": "  chat <text>      : Talk to Miyu's fixed session (used by Lua for the `miyu:` prefix).",
         "cli_help_catalog": "  catalog          : Refresh the models.dev model catalog cache.",
+        "cli_help_usage": "  usage [--reset]  : Show (or clear) the token usage counters.",
+        "cli_help_reset_prompt": "  reset-prompt     : Restore the system prompt to the shipped default.",
         "cli_help_h": "  -h / --help      : Show this help message.",
         "cli_bk_create": "Backup created at: {}",
         "cli_fcitx_not_run": "Fcitx5 is not currently running. Deployment skipped.",
@@ -86,6 +89,17 @@ I18N = {
         "cli_stat_state": "State File     :",
         "cli_stat_lua": "Lua Config     :",
         "cli_stat_miyu": "Miyu chat",
+        "cli_stat_saver": "Token saving",
+        "cli_usage_title": "[ Token usage ]",
+        "cli_usage_none": "No requests recorded yet. Type something with the AI trigger first.",
+        "cli_usage_since": "Counting since",
+        "cli_usage_req": "Requests",
+        "cli_usage_in": "Input tokens",
+        "cli_usage_out": "Output tokens",
+        "cli_usage_avg": "Average input / request",
+        "cli_usage_billed": "Billed-equivalent input (cache at 0.1x)",
+        "cli_usage_recent": "Recent requests",
+        "cli_usage_reset": "Usage counters cleared.",
         "cli_err_cmd": "Unknown command: {}",
 
         # TUI Main
@@ -122,6 +136,44 @@ I18N = {
         "tui_miyu_title": " Chat with Miyu ",
         "tui_miyu_off": "off",
         "tui_miyu_bad": "Miyu is not usable right now:\n{}\n\nSettings are still editable.",
+
+        # TUI Token saving
+        "tui_opt_saver": "Token Saving & Cache",
+        "tui_opt_prefix": "Prefix Behaviors",
+        "tui_px_title": " Prefix Behaviors ",
+        "tui_px_opt_rules": "Prefix rules",
+        "tui_px_opt_combo": "Combining prefixes",
+        "tui_px_opt_fallback": "Unknown prefixes (fallback)",
+        "tui_px_opt_pos": "Where rules are injected",
+        "tui_px_rules_title": " Prefix Rules ",
+        "tui_px_add": "+ Add a prefix",
+        "tui_px_fm_add": " Add Prefix ",
+        "tui_px_fm_edit": " Edit Prefix ",
+        "tui_px_combo_title": " Combining Prefixes ",
+        "tui_px_fallback_title": " Unknown Prefix Fallback ",
+        "tui_px_pos_title": " Rule Injection Point ",
+        "tui_lbl_prefix": "Prefix",
+        "tui_px_key_hint": "Lowercase letters only, without the colon. Example: kr",
+        "tui_lbl_rule": "Rule",
+        "tui_px_bad_key": "A prefix must be lowercase letters only, without the colon.\nExample: kr",
+        "tui_px_pos_system": "End of system prompt",
+        "tui_px_pos_before": "In the user message, before the input",
+        "tui_px_pos_after": "In the user message, after the input",
+        "tui_px_fallback_hint": "{p} is replaced with the unrecognised prefix. Leave empty to disable.",
+        "cli_migrated": "Prefix rules moved out of the system prompt into their own config (state.json backed up).",
+        "tui_sv_title": " Token Saving & Cache ",
+        "tui_sv_prefix": "Prefix rules in prompt",
+        "tui_sv_vocab": "Custom vocabulary",
+        "tui_sv_nohist": "Prefixes sent without history",
+        "tui_sv_adaptive": "Adaptive output cap",
+        "tui_sv_mark": "Mark prompt cacheable (Anthropic)",
+        "tui_sv_disk": "Reuse results across sessions",
+        "tui_sv_disk_min": "Min pinyin length to cache",
+        "tui_sv_disk_max": "Max cached results",
+        "tui_sv_reset": "Restore the slim default prompt",
+        "tui_inject_auto": "On demand",
+        "tui_inject_all": "Always send all",
+        "tui_sv_reset_done": "System prompt restored to the shipped default.",
         "chat_bg": "still thinking after {}s, handed off; you will get a notification",
         "chat_bg_lost": "the background worker returned nothing",
         "chat_notify_ok": "Miyu",
@@ -211,6 +263,8 @@ I18N = {
         "cli_help_ask": "  ask <文本>       : 用当前节点做一次性问答(Lua 侧走本机 CLI 后端时调用)",
         "cli_help_chat": "  chat <文本>      : 跟 Miyu 的固定会话聊一句(Lua 侧遇到 `miyu:` 前缀时调用)",
         "cli_help_catalog": "  catalog          : 刷新 models.dev 模型目录缓存",
+        "cli_help_usage": "  usage [--reset]  : 查看（或清空）token 用量统计。",
+        "cli_help_reset_prompt": "  reset-prompt     : 把提示词恢复为程序自带的默认版本。",
         "cli_help_h": "  -h / --help      : 显示此帮助信息",
         "cli_bk_create": "已创建配置文件备份: {}",
         "cli_fcitx_not_run": "检测到 Fcitx5 未运行，跳过自动部署。",
@@ -249,6 +303,17 @@ I18N = {
         "cli_stat_state": "JSON状态文件 :",
         "cli_stat_lua": "Lua 配置路径 :",
         "cli_stat_miyu": "Miyu 聊天",
+        "cli_stat_saver": "省 token",
+        "cli_usage_title": "[ token 用量 ]",
+        "cli_usage_none": "还没有记录。先用触发键打一句试试。",
+        "cli_usage_since": "统计起始",
+        "cli_usage_req": "请求数",
+        "cli_usage_in": "输入 token",
+        "cli_usage_out": "输出 token",
+        "cli_usage_avg": "平均每次输入",
+        "cli_usage_billed": "计费等效输入 (缓存按 0.1x)",
+        "cli_usage_recent": "最近的请求",
+        "cli_usage_reset": "用量统计已清空。",
         "cli_err_cmd": "未知的命令: {}",
 
         # TUI Main
@@ -285,6 +350,44 @@ I18N = {
         "tui_miyu_title": " 跟 Miyu 聊天 ",
         "tui_miyu_off": "已关闭",
         "tui_miyu_bad": "现在还用不了 Miyu：\n{}\n\n设置仍然可以先填好。",
+
+        # TUI 省 token
+        "tui_opt_saver": "省 token 与缓存",
+        "tui_opt_prefix": "前缀行为",
+        "tui_px_title": " 前缀行为 ",
+        "tui_px_opt_rules": "前缀规则",
+        "tui_px_opt_combo": "前缀组合规则",
+        "tui_px_opt_fallback": "未知前缀兜底",
+        "tui_px_opt_pos": "规则注入位置",
+        "tui_px_rules_title": " 前缀规则 ",
+        "tui_px_add": "+ 添加新前缀",
+        "tui_px_fm_add": " 添加前缀 ",
+        "tui_px_fm_edit": " 编辑前缀 ",
+        "tui_px_combo_title": " 前缀组合规则 ",
+        "tui_px_fallback_title": " 未知前缀兜底 ",
+        "tui_px_pos_title": " 规则注入位置 ",
+        "tui_lbl_prefix": "前缀",
+        "tui_px_key_hint": "只要小写字母，不带冒号。例如：kr",
+        "tui_lbl_rule": "规则",
+        "tui_px_bad_key": "前缀只能是小写字母，不要带冒号。\n例如：kr",
+        "tui_px_pos_system": "系统提示词末尾",
+        "tui_px_pos_before": "用户消息里，输入之前",
+        "tui_px_pos_after": "用户消息里，输入之后",
+        "tui_px_fallback_hint": "{p} 会被替换成认不出的那个前缀。留空则关闭兜底。",
+        "cli_migrated": "前缀规则已从提示词里拆出来，存进独立配置（state.json 已备份）。",
+        "tui_sv_title": " 省 token 与缓存 ",
+        "tui_sv_prefix": "提示词里的前缀规则",
+        "tui_sv_vocab": "自定义词库",
+        "tui_sv_nohist": "不带上文的前缀",
+        "tui_sv_adaptive": "自适应输出上限",
+        "tui_sv_mark": "标记提示词可缓存 (Anthropic)",
+        "tui_sv_disk": "跨会话复用结果",
+        "tui_sv_disk_min": "进缓存的最短拼音",
+        "tui_sv_disk_max": "缓存条数上限",
+        "tui_sv_reset": "恢复精简版默认提示词",
+        "tui_inject_auto": "按需注入",
+        "tui_inject_all": "每次全发",
+        "tui_sv_reset_done": "提示词已恢复为程序自带的默认版本。",
         "chat_bg": "{}秒还没答完，已转后台，答完弹通知",
         "chat_bg_lost": "后台没有返回内容",
         "chat_notify_ok": "Miyu",
@@ -393,11 +496,74 @@ DEBUG_LOG = os.path.join(CACHE_DIR, "debug.log")
 # 本机可能同时装着包管理器的旧版和自编译的新版，探测结果按 (路径, mtime, 大小) 缓存
 MIYU_CAPS_FILE = os.path.join(CACHE_DIR, "miyu_caps.json")
 CHAT_LAST_FILE = os.path.join(CACHE_DIR, "last_chat.txt")
+REPLY_CACHE_FILE = os.path.join(CACHE_DIR, "replies.json")
+USAGE_FILE = os.path.join(CACHE_DIR, "usage.json")
 MIYU_HOME = os.environ.get("MIYU_HOME", os.path.expanduser("~/.miyu"))
 MIYU_CONFIG = os.path.join(MIYU_HOME, "config", "config.jsonc")
 MIYU_CATALOG = os.path.join(MIYU_HOME, "cache", "models_cache.json")
 MIYU_THINKING = os.path.join(MIYU_HOME, "state", "thinking-variants.json")
 DEFAULT_CLI_TIMEOUT = 60.0
+
+# 省 token：提示词里随输入变化的部分（前缀规则、命中的词库）按需注入，常驻核心保持恒定，
+# 供应商的前缀缓存（DeepSeek/OpenAI 自动、Anthropic 显式标记）才咬得住。
+DEFAULT_HISTORY_BYTES = 120
+DEFAULT_NO_HISTORY_PREFIXES = "call,cmd,sh"
+DEFAULT_REPLY_CACHE_MAX = 500
+DEFAULT_REPLY_CACHE_MIN_LEN = 8
+# 前缀行为：以前是提示词 markdown 里的几行字，程序靠行首形状去切；现在程序要按前缀决定
+# 注入什么，前缀就是一等公民了，改成独立的有序表——加一条 `kr:` 不用再懂 markdown 格式。
+# 规则文本一律约束**输出**（"只输出日文译文"），别描述过程（"转成中文再翻译成日文"）——
+# 后者字面上是两步，模型会把中间的中文也吐出来。
+PREFIX_RULES_HEAD = "# 本次要求"
+PREFIX_POSITIONS = ("system", "user_before", "user_after")
+# 实测（deepseek-flash，33 次采样）：规则贴在输入之后 33/33，贴在输入之前 27/33，
+# 放系统提示词末尾 12/15——紧跟输入的位置才压得住开头"你是拼音输入法引擎"那句定性。
+DEFAULT_PREFIX_POSITION = "user_after"
+DEFAULT_PREFIXES = [
+    ("call", "不要输出拼音转换的结果。把还原出的句子当作用户向你提出的问题，直接输出答案本身，不说废话。"),
+    ("cn", "正常执行拼音转换，输出中文。"),
+    ("eng", "只输出英文译文。不要输出中间的中文，不要附带原文。"),
+    ("jp", "只输出日文译文。不要输出中间的中文，不要附带原文。"),
+    ("cmd", "不要输出拼音转换的结果。把还原出的句子当作需求，只输出可直接运行的命令本身，前后不许有解释、说明或代码块标记。"),
+    ("sh", "不要输出拼音转换的结果。把还原出的句子当作需求，只输出 shell 脚本正文，不要用代码块包裹，不要任何解释。"),
+    ("moe", "把结果改写成猫娘的语气和用词，只输出改写后的结果。"),
+]
+DEFAULT_PREFIX_COMBO = (
+    "多个前缀可以组合，请举一反三：`jpmoe:`（或 `moejp:`）是日文译文加猫娘语气；"
+    "`moesh:` 是生成脚本且注释用猫娘语气。多个语言前缀表示分行输出，每行一种语言，"
+    "顺序与前缀顺序一致（`jpcnrs:` 即第一行日文、第二行中文、第三行俄文），"
+    "行首不许出现“日文：”这类标签。前缀也可以拆开写，`jp:moe:` 等价于 `jpmoe:`。"
+)
+# 迁移时用来判断用户有没有改过：跟这里一字不差就换成上面重写过的版本，改过就原样保留。
+LEGACY_PREFIX_RULES = {
+    "call": "说明用户需要解决问题。请立即切换为“不说废话直接给结果的帮助模式”，不要输出从拼音转换出的句子，而是将句子作为prompt再次进行生成，解决用户的问题。",
+    "cn": "说明用户需要中文句子结果，请正常执行拼音转换。",
+    "eng": "说明用户需要将中文句子翻译为英文句子，请立即切换为“中英翻译器”，将拼音转换成中文再次翻译为英文后输出。",
+    "jp": "说明用户需要将中文句子翻译为日文句子，请立即切换为“中日翻译器”，将拼音转换成中文再次翻译为日文后输出。",
+    "cmd": "说明用户需要命令结果，请立即切换为“命令生成器”，不要输出从拼音转换出的句子，而是将句子作为prompt再次进行生成，输出可直接运行的命令，禁止在命令上下生成客套话或非注释的解释性语句。",
+    "sh": "说明用户需要shell脚本结果，请立即切换为“shell脚本生成器”，不要输出从拼音转换出的句子，而是将句子作为用户的需求进行生成，输出纯脚本内容。禁止用代码块套住脚本，禁止在脚本前后生成“好的，这是xxx”等语句和非脚本注释的解释性语句。",
+    "moe": "说明用户想要卖萌，请立即切换为“猫娘语气转换器”，将拼音转换成中文再转换为猫娘的语气和用词。",
+}
+LEGACY_COMBO_HEAD = "不同前缀可以相互组合，同时达成多个前缀功能"
+
+DEFAULT_PREFIX_FALLBACK = (
+    "输入以 `{p}:` 开头，这是没有预先定义的前缀，请按它的字面含义处理："
+    "两个字母通常是语言代码（kr=韩语、fr=法语、de=德语、es=西班牙语、rs=俄语…），"
+    "这时只输出该语言的译文，不要输出中间的中文。前缀本身绝不能出现在输出里。"
+)
+
+TOKEN_SAVER_DEFAULTS = {
+    "prefix_position": DEFAULT_PREFIX_POSITION,
+    "prefix_inject": "auto",
+    "vocab_inject": "auto",
+    "no_history_prefixes": DEFAULT_NO_HISTORY_PREFIXES,
+    # 上限不是预留额，省不到 token，只防跑飞；而它会掐断默认思考的模型，所以默认关
+    "adaptive_max_tokens": False,
+    "prompt_cache_mark": True,
+    "reply_cache_disk": True,
+    "reply_cache_min_len": DEFAULT_REPLY_CACHE_MIN_LEN,
+    "reply_cache_max": DEFAULT_REPLY_CACHE_MAX,
+}
 
 # `miyu:` 前缀聊天：不经过当前节点，直接找 Miyu 的一个固定会话（跨调用连续）
 DEFAULT_MIYU_PREFIX = "miyu:"
@@ -1099,36 +1265,33 @@ def sync_external_profiles(state):
     return state
 
 
-def compose_system_prompt(settings, vocab):
-    """系统提示词 + 自定义词库（与 Lua 侧 HTTP 路径拼法一致）。"""
-    return str(settings.get("prompt", "")) + vocab_block(vocab)
-
-
-def vocab_block(vocab):
+def vocab_block(vocab, text=None):
+    """自定义词库片段。给了 text 就只留正文里真出现的条目——词库越大，这一步省得越多。"""
     terms = [str(x) for x in (vocab or {}).get("terms", []) if str(x).strip()]
     mappings = {str(k): str(v) for k, v in ((vocab or {}).get("mappings") or {}).items() if str(k).strip()}
+    if text is not None:
+        low = str(text).lower()
+        terms = [x for x in terms if x.lower() in low]
+        mappings = {k: v for k, v in mappings.items() if k.lower() in low}
     if not terms and not mappings:
         return ""
-    lines = ["", "# 用户词库"]
+    lines = ["", VOCAB_TITLE]
     if terms:
-        lines.append("以下是用户常用的英文词/网络黑话，拼音中出现时按原样保留，不要当拼音切分：")
+        lines.append(VOCAB_TERMS_HEAD)
         lines.append("、".join(terms))
     if mappings:
-        lines.append("以下是用户约定的简拼/缩写映射，遇到时优先按映射输出：")
+        lines.append(VOCAB_MAPS_HEAD)
         lines.extend(f"{k}={v}" for k, v in mappings.items())
     return "\n".join(lines)
 
 
+VOCAB_TITLE = "# 用户词库"
+VOCAB_TERMS_HEAD = "以下是用户常用的英文词/网络黑话，拼音中出现时按原样保留，不要当拼音切分："
+VOCAB_MAPS_HEAD = "以下是用户约定的简拼/缩写映射，遇到时优先按映射输出："
+
 # `base:` 由程序做：模型算 base64 又慢又错，让它只负责把拼音变成中文，编码交给这里。
 # 其余前缀（call/jp/moe/…）照旧原样传给模型，程序不认识也不需要认识。
 BASE64_WORD = "base"
-
-
-def prefix_words(settings):
-    """从提示词里认识的前缀词，用来拆 `basejp:` 这种连写。抓不全没关系，拆不开就原样放过。"""
-    words = set(re.findall(r"`([a-z]+):", str(settings.get("prompt", "") or "")))
-    words.add(BASE64_WORD)
-    return words
 
 
 def split_prefix(text):
@@ -1180,6 +1343,206 @@ def strip_base_prefix(text, words):
     if not found:
         return text, False
     return (":".join(kept) + ":" + rest if kept else rest), True
+
+
+# ==========================================
+# ✂️ 提示词分层：常驻核心 + 按需注入
+# ==========================================
+# 提示词里描述各前缀行为的那一整段占了全篇六成，可绝大多数输入是不带前缀的纯拼音，根本用
+# 不上。所以核心（职责 / 注意点 / 严格遵守）常驻，前缀规则只在输入真带了某个前缀时才贴。
+#
+# 铁律：**核心必须逐字节恒定**——DeepSeek / OpenAI 的自动前缀缓存和 Anthropic 的
+# cache_control 全靠它。随输入变化的东西（命中的规则、命中的词库）只能追加在核心之后，
+# 或者干脆放进 user 消息，绝不能插进核心里。
+_RULE_LINE = re.compile(r"^\s*[-*]\s*`([a-z]+):`")
+_HEADING = re.compile(r"^(#+)\s")
+
+
+def split_prompt(prompt):
+    """老结构的提示词 → (核心, {前缀: 规则原文}, 组合规则块, 规则小节标题)。
+
+    只在迁移到结构化前缀之前用；切不出规则行时原样返回，调用方退回全量发送。
+    """
+    prompt = str(prompt or "")
+    lines = prompt.split("\n")
+    rule_idx = [i for i, l in enumerate(lines) if _RULE_LINE.match(l)]
+    if not rule_idx:
+        return prompt, {}, "", ""
+    first, last = rule_idx[0], rule_idx[-1]
+
+    # 规则小节的标题：紧挨在第一条规则上面（中间只允许空行）的那个标题行
+    head, start = "", first
+    for i in range(first - 1, -1, -1):
+        if not lines[i].strip():
+            continue
+        if _HEADING.match(lines[i]):
+            head, start = lines[i], i
+        break
+    head_level = len(_HEADING.match(head).group(1)) if head else 1
+
+    # 规则段的结束：最后一条规则之后的第一个标题行（中间的行算那条规则的续行）
+    end = len(lines)
+    for i in range(last + 1, len(lines)):
+        if _HEADING.match(lines[i]):
+            end = i
+            break
+
+    # 组合规则块：紧随其后、比规则标题更深一级的子小节，直到下一个同级或更浅的标题
+    combo, block_end = "", end
+    if end < len(lines) and len(_HEADING.match(lines[end]).group(1)) > head_level:
+        stop = len(lines)
+        for i in range(end + 1, len(lines)):
+            m = _HEADING.match(lines[i])
+            if m and len(m.group(1)) <= head_level:
+                stop = i
+                break
+        combo = "\n".join(lines[end:stop]).strip("\n")
+        block_end = stop
+
+    rules, bounds = {}, rule_idx + [end]
+    for n, i in enumerate(rule_idx):
+        rules[_RULE_LINE.match(lines[i]).group(1)] = "\n".join(lines[i:bounds[n + 1]]).strip("\n")
+
+    core = "\n".join(lines[:start] + lines[block_end:]).strip("\n")
+    return core, rules, combo, head.strip()
+
+
+def prefix_rule_line(key, rule):
+    """一条前缀规则渲染成发给模型的样子。"""
+    return f"- `{key}:` {str(rule).strip()}"
+
+
+def prompt_layers(state):
+    """(核心, {前缀: 渲染好的规则行}, 组合规则, 未知前缀兜底, 小节标题)。
+
+    有结构化的 `prefixes` 就用它；没有（老 state.json 且切不出规则）就退回从提示词里切。
+    """
+    settings = state.get("settings", {})
+    prompt = str(settings.get("prompt", "") or "")
+    pf = state.get("prefixes")
+    if isinstance(pf, dict) and isinstance(pf.get("rules"), list):
+        rules = {}
+        for item in pf["rules"]:
+            if not isinstance(item, dict):
+                continue
+            key = str(item.get("key", "")).strip().lower()
+            rule = str(item.get("rule", "")).strip()
+            if re.fullmatch(r"[a-z]+", key or "") and rule:
+                rules[key] = prefix_rule_line(key, rule)
+        return prompt, rules, str(pf.get("combo", "") or "").strip(), str(pf.get("fallback", "") or "").strip(), PREFIX_RULES_HEAD
+    core, rules, combo, head = split_prompt(prompt)
+    return core, rules, combo, "", head
+
+
+def rule_words(rules):
+    """按配置里的出场顺序列出前缀词，末尾补上程序自己接管的 `base`。"""
+    words = list(rules.keys())
+    if BASE64_WORD not in words:
+        words.append(BASE64_WORD)
+    return words
+
+
+def split_known(seg, words):
+    """从左贪婪切出已知前缀词；切不动的位置起，剩下的整块当作未知。
+
+    `jpkr` → (["jp"], "kr")：jp 照常注入规则，kr 走兜底，不会因为一个不认识就整段放弃。
+    """
+    parts, pos = [], 0
+    while pos < len(seg):
+        best = ""
+        for w in words:
+            if len(w) > len(best) and seg.startswith(w, pos):
+                best = w
+        if not best:
+            return parts, seg[pos:]
+        parts.append(best)
+        pos += len(best)
+    return parts, ""
+
+
+def resolve_prefixes(text, words):
+    """输入开头用到的前缀：(认识的, 不认识的)。"""
+    segs, _ = split_prefix(str(text or ""))
+    hits, unknown, seen = [], [], set()
+    for seg in segs:
+        known, rest = ([seg], "") if seg in words else split_known(seg, words)
+        for w in known:
+            if w not in seen:
+                seen.add(w)
+                hits.append(w)
+        if rest and rest not in unknown:
+            unknown.append(rest)
+    return hits, unknown
+
+
+def prefix_instructions(text, rules, combo, fallback, head, words, inject="auto"):
+    """这次要注入的前缀规则文本。text 为 None 或 inject 不是 auto 时给全量。"""
+    if text is None or inject != "auto":
+        picked, unknown = [w for w in words if w in rules], []
+    else:
+        hits, unknown = resolve_prefixes(text, words)
+        picked = [w for w in hits if w in rules]
+    lines = [rules[w] for w in picked]
+    if fallback:
+        # 不认识的前缀（`kr:`）给一条通则，比把整篇提示词砸过去又便宜又管用
+        lines.extend(fallback.replace("{p}", u) for u in unknown)
+    if not lines:
+        return ""
+    if combo and (text is None or inject != "auto" or len(picked) + len(unknown) >= 2):
+        lines.append(combo)
+    return "\n".join(([head] if head else []) + lines)
+
+
+def no_history_prefix_set(settings):
+    raw = str(settings.get("no_history_prefixes", DEFAULT_NO_HISTORY_PREFIXES) or "")
+    return {w.strip().lower() for w in raw.replace("，", ",").split(",") if w.strip()}
+
+
+def prefix_position(settings):
+    pos = str(settings.get("prefix_position", DEFAULT_PREFIX_POSITION) or "").strip()
+    return pos if pos in PREFIX_POSITIONS else DEFAULT_PREFIX_POSITION
+
+
+def compose_request(state, user_text=None, history=""):
+    """(system 核心, system 追加, user 正文)。HTTP 线（Lua）和 CLI 线（这里）必须一致。
+
+    system 核心恒定；词库追加在它后面；前缀规则按「规则位置」决定放 system 末尾还是 user 里。
+    """
+    settings = state.get("settings", {})
+    core, rules, combo, fallback, head = prompt_layers(state)
+    words = rule_words(rules)
+    prefix_text = user_text if str(settings.get("prefix_inject", "auto")) == "auto" else None
+    vocab_text = user_text if str(settings.get("vocab_inject", "auto")) == "auto" else None
+    instructions = prefix_instructions(prefix_text, rules, combo, fallback, head, words,
+                                       str(settings.get("prefix_inject", "auto")))
+    pos = prefix_position(settings)
+
+    extra = ("\n" + instructions if instructions and pos == "system" else "")
+    extra += vocab_block(state.get("vocab", {}), vocab_text)
+
+    body = user_text or ""
+    if history:
+        body = f"【历史输入】：{history}\n【当前输入】：{body}"
+    if instructions and pos == "user_before":
+        body = instructions + "\n\n" + body
+    elif instructions and pos == "user_after":
+        body = body + "\n\n" + instructions
+    return core, extra, body
+
+
+def compose_system_prompt(state, user_text=None):
+    core, extra, _ = compose_request(state, user_text)
+    return core + extra
+
+
+def history_wanted(state, text):
+    """`call:` / `cmd:` / `sh:` 这类是在提问，之前打过的字是噪音，不带上文，也省一截 token。"""
+    banned = no_history_prefix_set(state.get("settings", {}))
+    if not banned:
+        return True
+    _, rules, _, _, _ = prompt_layers(state)
+    hits, _unknown = resolve_prefixes(text, rule_words(rules))
+    return not any(w in banned for w in hits)
 
 
 def _run_cli(argv, stdin_text=None, cwd=None, timeout=DEFAULT_CLI_TIMEOUT, env=None):
@@ -1370,7 +1733,8 @@ def miyu_chat(settings, vocab, text):
     session = str(settings.get("miyu_session", "") or "").strip() or DEFAULT_MIYU_SESSION
     timeout = _settings_float(settings, "miyu_timeout", DEFAULT_MIYU_TIMEOUT)
     host_prompt = str(settings.get("miyu_prompt", "") or "").strip() or DEFAULT_MIYU_PROMPT
-    block = vocab_block(vocab)
+    # 词库按需注入：她的宿主指令每次都要重发，词库越大越值得只贴命中的那几条
+    block = vocab_block(vocab, text if str(settings.get("vocab_inject", "auto")) == "auto" else None)
     if block:
         host_prompt = f"{host_prompt}\n\n{block}"
     argv = [binary, "ask", "--session", session, "--create", "--output-format", "json", "--quiet",
@@ -1560,12 +1924,13 @@ def run_ask(argv):
     if not profile_is_cli(profile):
         print(f"ERR: profile '{profile_id}' is not a CLI backend"); return 1
     settings = state.get("settings", {})
-    user_text, want_base64 = strip_base_prefix(user_text, prefix_words(settings))
+    user_text, want_base64 = strip_base_prefix(user_text, rule_words(prompt_layers(state)[1]))
     if not user_text.strip():
         print("ERR: empty input"); return 1
-    system_prompt = compose_system_prompt(settings, state.get("vocab", {}))
-    if history:
-        user_text = f"【历史输入】：{history}\n【当前用户输入（如果由call开头说明是指令）】：{user_text}"
+    if history and not history_wanted(state, user_text):
+        history = ""
+    core, extra, user_text = compose_request(state, user_text, history)
+    system_prompt = core + extra
     try:
         timeout = float(settings.get("cli_timeout", DEFAULT_CLI_TIMEOUT))
     except (TypeError, ValueError):
@@ -1602,8 +1967,20 @@ def _debug_log(label, user_text, answer, elapsed):
 # ==========================================
 # 💾 状态文件：默认值、迁移、读写、导出
 # ==========================================
+def default_config_candidates():
+    """默认配置按什么顺序找。
+
+    软链接部署（`~/.local/bin/rime-llm-config` → 仓库里的 src/）时脚本跟仓库在一起，这时
+    该用仓库里那份，否则会拿到 /usr/share 里包安装的旧副本——「恢复默认提示词」还原出旧版
+    就是这么来的。装成包时 SCRIPT_DIR 在 /usr 下，仍旧以系统那份为准。
+    """
+    if SCRIPT_DIR.startswith(("/usr/", "/opt/")):
+        return (SYSTEM_DEFAULT_CONFIG, LOCAL_DEFAULT_CONFIG)
+    return (LOCAL_DEFAULT_CONFIG, SYSTEM_DEFAULT_CONFIG)
+
+
 def get_default_state():
-    for path in (SYSTEM_DEFAULT_CONFIG, LOCAL_DEFAULT_CONFIG):
+    for path in default_config_candidates():
         if os.path.exists(path):
             try:
                 with open(path, "r", encoding="utf-8") as f:
@@ -1625,7 +2002,8 @@ def get_default_state():
         "settings": {
             "prompt": "你是一个智能拼音输入法引擎。你的职责是把用户输入的拼音转换为流畅、通顺、合理的句子，识别错输、漏输、乱序。你的输出会直接上屏：禁止任何客套话，禁止 Markdown。",
             "ai_trigger": "vv", "max_tokens": 4000, "temperature": 0.1,
-            "connect_timeout": 2.0, "max_time": 30.0, "cli_timeout": DEFAULT_CLI_TIMEOUT, "max_history_bytes": 240,
+            "connect_timeout": 2.0, "max_time": 30.0, "cli_timeout": DEFAULT_CLI_TIMEOUT,
+            "max_history_bytes": DEFAULT_HISTORY_BYTES, **TOKEN_SAVER_DEFAULTS,
             "miyu_prefix": DEFAULT_MIYU_PREFIX, "miyu_session": DEFAULT_MIYU_SESSION,
             "miyu_timeout": DEFAULT_MIYU_TIMEOUT, "miyu_wait": DEFAULT_MIYU_WAIT,
             "miyu_tools": False, "miyu_prompt": DEFAULT_MIYU_PROMPT, "miyu_binary": "",
@@ -1654,7 +2032,56 @@ def migrate_profile(profile):
     return profile
 
 
+_MIGRATED_PREFIXES = False
+
+
+def default_prefixes():
+    return {
+        "rules": [{"key": k, "rule": r} for k, r in DEFAULT_PREFIXES],
+        "combo": DEFAULT_PREFIX_COMBO,
+        "fallback": DEFAULT_PREFIX_FALLBACK,
+    }
+
+
+def migrate_prefixes(data):
+    """老结构（规则写在提示词 markdown 里）→ 结构化的 prefixes。返回有没有真的迁移。
+
+    切不出规则就什么都不动，继续走 split_prompt 那条老路——不能因为解析不了就把用户的
+    前缀行为丢掉。
+    """
+    global _MIGRATED_PREFIXES
+    pf = data.get("prefixes")
+    if isinstance(pf, dict) and isinstance(pf.get("rules"), list):
+        pf.setdefault("combo", DEFAULT_PREFIX_COMBO)
+        pf.setdefault("fallback", DEFAULT_PREFIX_FALLBACK)
+        return False
+    settings = data.setdefault("settings", {})
+    core, rules, combo, _head = split_prompt(settings.get("prompt", ""))
+    if not rules:
+        return False
+    # 摘掉行首的 `- `jp:`前缀，` 这层壳，key 已经单独存了；正文保留用户自己的措辞
+    strip = re.compile(r"^\s*[-*]\s*`[a-z]+:`\s*(?:前缀[，,：:]\s*)?")
+    rewritten = dict(DEFAULT_PREFIXES)
+    out = []
+    for key, raw in rules.items():
+        body = strip.sub("", raw).strip()
+        # 跟老版一字不差 = 用户没改过，换成重写后的版本（约束输出而非描述过程）
+        if body == LEGACY_PREFIX_RULES.get(key) and key in rewritten:
+            body = rewritten[key]
+        out.append({"key": key, "rule": body})
+    combo_body = re.sub(r"^#+\s.*\n?", "", combo).strip()
+    if combo_body.startswith(LEGACY_COMBO_HEAD):
+        combo_body = DEFAULT_PREFIX_COMBO
+    data["prefixes"] = {"rules": out, "combo": combo_body, "fallback": DEFAULT_PREFIX_FALLBACK}
+    settings["prompt"] = core
+    _MIGRATED_PREFIXES = True
+    return True
+
+
 def migrate_state(data, default_state):
+    # 必须赶在下面那个"补齐 default_state 里的顶层键"之前：default_state 自带 prefixes，
+    # 先补进来的话 migrate_prefixes 会以为已经是新结构，老用户提示词里的规则段就摘不掉了
+    migrate_prefixes(data)
     for k in default_state:
         if k not in data:
             data[k] = default_state[k]
@@ -1665,6 +2092,8 @@ def migrate_state(data, default_state):
     for k, v in default_state.get("settings", {}).items():
         data["settings"].setdefault(k, v)
     data["settings"].setdefault("cli_timeout", DEFAULT_CLI_TIMEOUT)
+    for k, v in TOKEN_SAVER_DEFAULTS.items():
+        data["settings"].setdefault(k, v)
     for k, v in (("miyu_prefix", DEFAULT_MIYU_PREFIX), ("miyu_session", DEFAULT_MIYU_SESSION),
                  ("miyu_timeout", DEFAULT_MIYU_TIMEOUT), ("miyu_wait", DEFAULT_MIYU_WAIT),
                  ("miyu_tools", False), ("miyu_prompt", DEFAULT_MIYU_PROMPT), ("miyu_binary", "")):
@@ -1746,6 +2175,14 @@ def lua_num(v, default):
     return repr(f)
 
 
+def lua_list(items):
+    return "{ " + ", ".join(lua_str(x) for x in items) + " }"
+
+
+def lua_bool(v):
+    return "true" if v else "false"
+
+
 def ensure_private_dir(path):
     if not path:
         return False
@@ -1760,6 +2197,23 @@ def ensure_private_dir(path):
 def export_to_lua(state):
     settings = state.get("settings", {})
     tmp_dirs = [d for d in (RUNTIME_TMP_DIR, CONFIG_TMP_DIR) if ensure_private_dir(d)]
+
+    # 提示词切成「常驻核心 + 按需片段」，Lua 侧照着拼；切不动就核心=全文、规则表为空，
+    # Lua 那边照旧整份发送。
+    prompt_core, prompt_rules, prompt_combo, prompt_fallback, prompt_head = prompt_layers(state)
+    words = rule_words(prompt_rules)
+    rules_str = "".join(
+        f"\n        [{lua_str(k)}] = {lua_long(prompt_rules[k])}," for k in words if k in prompt_rules
+    )
+    vocab_terms = [str(x) for x in state.get("vocab", {}).get("terms", []) if str(x).strip()]
+    stamp = hashlib.sha1(
+        (str(settings.get("prompt", "")) + "\0" + json.dumps(state.get("vocab", {}), sort_keys=True, ensure_ascii=False)
+         ).encode("utf-8")).hexdigest()[:12]
+    vocab_maps = ", ".join(
+        f"{{ {lua_str(k)}, {lua_str(v)} }}"
+        for k, v in (state.get("vocab", {}).get("mappings") or {}).items() if str(k).strip()
+    )
+    os.makedirs(CACHE_DIR, exist_ok=True)
 
     profiles_str = ""
     for pid, p in state.get("profiles", {}).items():
@@ -1797,15 +2251,41 @@ return {{
     }},
     ai_trigger = {lua_str(settings.get('ai_trigger', 'vv'))},
     prompt = {lua_long(settings.get('prompt', ''))},
+    prompt_core = {lua_long(prompt_core)},
+    prompt_rules = {{{rules_str}
+    }},
+    prompt_rules_head = {lua_str(prompt_head)},
+    prompt_combo = {lua_long(prompt_combo)},
+    rule_words = {lua_list(words)},
+    prefix_inject = {lua_str(settings.get('prefix_inject', 'auto'))},
     vocab_prompt = {lua_long(vocab_block(state.get('vocab', {})))},
+    vocab = {{
+        title = {lua_str(VOCAB_TITLE)},
+        terms_head = {lua_str(VOCAB_TERMS_HEAD)},
+        maps_head = {lua_str(VOCAB_MAPS_HEAD)},
+        terms = {lua_list(vocab_terms)},
+        maps = {{ {vocab_maps} }},
+    }},
+    vocab_inject = {lua_str(settings.get('vocab_inject', 'auto'))},
+    no_history_prefixes = {lua_list(sorted(no_history_prefix_set(settings)))},
+    adaptive_max_tokens = {lua_bool(settings.get('adaptive_max_tokens', True))},
+    prompt_cache_mark = {lua_bool(settings.get('prompt_cache_mark', True))},
+    reply_cache_disk = {lua_bool(settings.get('reply_cache_disk', True))},
+    reply_cache_file = {lua_str(REPLY_CACHE_FILE)},
+    prompt_stamp = {lua_str(stamp)},
+    reply_cache_max = {lua_num(settings.get('reply_cache_max', DEFAULT_REPLY_CACHE_MAX), DEFAULT_REPLY_CACHE_MAX)},
+    reply_cache_min_len = {lua_num(settings.get('reply_cache_min_len', DEFAULT_REPLY_CACHE_MIN_LEN), DEFAULT_REPLY_CACHE_MIN_LEN)},
+    usage_file = {lua_str(USAGE_FILE)},
     max_tokens = {lua_num(settings.get('max_tokens', 4000), 4000)},
     temperature = {lua_num(settings.get('temperature', 0.1), 0.1)},
     connect_timeout = {lua_num(settings.get('connect_timeout', 2.0), 2.0)},
     max_time = {lua_num(settings.get('max_time', 30.0), 30.0)},
-    max_history_bytes = {lua_num(settings.get('max_history_bytes', 240), 240)},
+    max_history_bytes = {lua_num(settings.get('max_history_bytes', DEFAULT_HISTORY_BYTES), DEFAULT_HISTORY_BYTES)},
     cli_timeout = {lua_num(settings.get('cli_timeout', DEFAULT_CLI_TIMEOUT), DEFAULT_CLI_TIMEOUT)},
     miyu_prefix = {lua_str(str(settings.get('miyu_prefix', DEFAULT_MIYU_PREFIX) or '').strip())},
-    prefix_words = {{ {", ".join(lua_str(w) for w in sorted(prefix_words(settings)))} }},
+    prompt_fallback = {lua_long(prompt_fallback)},
+    prefix_position = {lua_str(prefix_position(settings))},
+    prefix_words = {lua_list(words)},
     config_tool = {lua_str(os.path.realpath(sys.argv[0]))},
     tmp_dirs = {{ {", ".join(lua_str(d) for d in tmp_dirs)} }},
     debug_flag = {lua_str(DEBUG_FLAG)},
@@ -1984,6 +2464,72 @@ def run_debug():
             os.remove(DEBUG_FLAG)
         print(f"{L_OK} 调试监控已关闭，输入法恢复静默模式。")
 
+def load_usage():
+    try:
+        with open(USAGE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def run_usage(argv):
+    """token 用量：数字由 Lua 侧每次 HTTP 请求后从响应的 usage 字段累加进 usage.json。"""
+    if argv and argv[0] in ("--reset", "reset", "-r"):
+        try:
+            os.remove(USAGE_FILE)
+        except OSError:
+            pass
+        print(f"{L_OK} " + t("cli_usage_reset"))
+        return 0
+    u = load_usage()
+    reqs = int(u.get("requests") or 0)
+    if not reqs:
+        print(f"{L_WARN} " + t("cli_usage_none"))
+        return 0
+    pin = int(u.get("prompt") or 0)
+    cached = int(u.get("cached") or 0)
+    out = int(u.get("completion") or 0)
+    billed = (pin - cached) + cached * 0.1
+    hit = f" ({cached:,} cached / {cached * 100 // max(pin, 1)}%)" if cached else ""
+    since = datetime.datetime.fromtimestamp(u.get("since") or 0).strftime("%Y-%m-%d %H:%M")
+    print(f"\n{C_CYN}{C_BLD}{t('cli_usage_title')}{C_RES}")
+    print(f"  {pad_str(t('cli_usage_since'), 26)}: {since}")
+    print(f"  {pad_str(t('cli_usage_req'), 26)}: {reqs:,}")
+    print(f"  {pad_str(t('cli_usage_in'), 26)}: {pin:,}{hit}")
+    print(f"  {pad_str(t('cli_usage_out'), 26)}: {out:,}")
+    print(f"  {pad_str(t('cli_usage_avg'), 26)}: {pin // reqs:,}")
+    print(f"  {pad_str(t('cli_usage_billed'), 26)}: {billed / reqs:,.0f} / {C_GRN}{billed:,.0f}{C_RES}")
+    recent = u.get("recent")
+    if isinstance(recent, list) and recent:
+        print(f"\n{C_CYN}{C_BLD}[ {t('cli_usage_recent')} ]{C_RES}")
+        for e in recent[-10:]:
+            if not isinstance(e, dict):
+                continue
+            ts = datetime.datetime.fromtimestamp(e.get("t") or 0).strftime("%H:%M:%S")
+            c = int(e.get("cached") or 0)
+            print(f"  {C_GRY}{ts}{C_RES}  in {int(e.get('in') or 0):>6,}"
+                  + (f" {C_GRN}(cache {c:,}){C_RES}" if c else " " * 14)
+                  + f"  out {int(e.get('out') or 0):>5,}  {C_GRY}{e.get('m', '')}{C_RES}")
+    print()
+    return 0
+
+
+def run_reset_prompt():
+    """把提示词换回程序自带的默认版本（自带版本是按分层裁剪重写过的精简版）。"""
+    state = load_state()
+    default = get_default_state().get("settings", {}).get("prompt", "")
+    if not default:
+        print(f"{L_ERR} default_state.json not found")
+        return 1
+    if os.path.exists(STATE_FILE):
+        backup_file(STATE_FILE)
+    state["settings"]["prompt"] = default
+    save_state(state)
+    print(f"{L_OK} " + t("tui_sv_reset_done"))
+    return 0
+
+
 def print_help():
     print(t("cli_help_title"))
     print(t("cli_help_tui"))
@@ -1994,6 +2540,8 @@ def print_help():
     print(t("cli_help_ask"))
     print(t("cli_help_chat"))
     print(t("cli_help_catalog"))
+    print(t("cli_help_usage"))
+    print(t("cli_help_reset_prompt"))
     print(t("cli_help_h") + "\n")
 
 def cli_handler():
@@ -2008,8 +2556,21 @@ def cli_handler():
             sys.exit(run_ask(sys.argv[2:]))
         elif cmd == "chat":
             sys.exit(run_chat(sys.argv[2:]))
+        elif cmd == "usage":
+            sys.exit(run_usage(sys.argv[2:]))
+        elif cmd in ("reset-prompt", "reset_prompt"):
+            sys.exit(run_reset_prompt())
         elif cmd == "sync":
-            state = load_state(); out = export_to_lua(state)
+            state = load_state()
+            if _MIGRATED_PREFIXES:
+                # 前缀刚从提示词里拆出来，落一次盘，用户在 state.json 里看到的就是新结构
+                if os.path.exists(STATE_FILE):
+                    backup_file(STATE_FILE)
+                save_state(state)
+                print(f"{L_OK} " + t("cli_migrated"))
+                out = LUA_FILE
+            else:
+                out = export_to_lua(state)
             print(f"{L_OK} " + t("cli_sync_ok", out))
             return True
         elif cmd == "catalog":
@@ -2052,6 +2613,12 @@ def cli_handler():
             else:
                 miyu_desc = "off"
             print(f"  {pad_str(t('cli_stat_miyu'), 25)}: {miyu_desc}")
+            inj = t('tui_inject_auto') if str(s.get('prefix_inject', 'auto')) == 'auto' else t('tui_inject_all')
+            vinj = t('tui_inject_auto') if str(s.get('vocab_inject', 'auto')) == 'auto' else t('tui_inject_all')
+            disk = 'on' if s.get('reply_cache_disk', True) else 'off'
+            core_len = len(prompt_layers(state)[0])
+            print(f"  {pad_str(t('cli_stat_saver'), 25)}: prompt={inj} / vocab={vinj} / cache={disk}"
+                  f" / core={core_len}{'字' if LANG == 'zh' else ' chars'}")
 
             prompt = s.get("prompt", "None")
             print(f"\n{C_CYN}{C_BLD}[ {t('tui_st_prompt')} ]{C_RES}")
@@ -2227,21 +2794,26 @@ def form_dialog(stdscr, title, fields, show_delete=False):
 
         for i, f in enumerate(fields):
             fy = y + 2 + i * 2
-            _safe_addstr(stdscr, fy, x + 2, f["label"], curses.color_pair(C_TITLE))
+            # 标签留够宽度给值，超长就截断——否则值区会被挤到 0 宽甚至冲出边框
+            label = truncate_str(f["label"], max(8, w - 24))
+            _safe_addstr(stdscr, fy, x + 2, label, curses.color_pair(C_TITLE))
+            if f.get("hint"):
+                _safe_addstr(stdscr, fy + 1, x + 4, truncate_str(f["hint"], w - 6),
+                             curses.color_pair(C_MAIN) | curses.A_DIM)
 
             val = str(f["value"])
-            field_w = w - 4 - str_width(f["label"]) - 2
-            fx = x + 4 + str_width(f["label"])
+            field_w = max(4, w - 6 - str_width(label))
+            fx = x + 4 + str_width(label)
             attr = curses.color_pair(C_HL) if (sel == i and mode == "NAV") else curses.A_UNDERLINE
 
             if f.get("type") == "textarea":
-                vis = t('tui_placeholder_ta') if sel == i else truncate_str(val.replace('\n', ' '), field_w)
-                _safe_addstr(stdscr, fy, fx, pad_str(vis, field_w), attr)
+                vis = t('tui_placeholder_ta') if sel == i else val.replace('\n', ' ')
+                _safe_addstr(stdscr, fy, fx, pad_str(truncate_str(vis, field_w), field_w), attr)
                 continue
 
             if f.get("type") == "select":
                 vis = f" {val} ▾" if sel == i else f" {val}"
-                _safe_addstr(stdscr, fy, fx, pad_str(vis, field_w), attr)
+                _safe_addstr(stdscr, fy, fx, pad_str(truncate_str(vis, field_w), field_w), attr)
                 continue
 
             disp_val = val + " "
@@ -2842,6 +3414,8 @@ def run_app(stdscr):
             (t('tui_opt_edit'), "edit_profiles"),
             (t('tui_opt_settings'), "edit_settings"),
             (t('tui_opt_vocab'), "edit_vocab"),
+            (t('tui_opt_prefix'), "edit_prefix"),
+            (t('tui_opt_saver'), "edit_saver"),
             (t('tui_opt_miyu', str(state["settings"].get("miyu_prefix", "") or "").strip() or t('tui_miyu_off')), "edit_miyu"),
             (t('tui_opt_export'), "export")
         ]
@@ -2916,6 +3490,125 @@ def run_app(stdscr):
                 s["miyu_binary"] = res[5].strip()
                 s["miyu_prompt"] = res[6].strip() or DEFAULT_MIYU_PROMPT
                 save_state(state)
+
+        elif choice == "edit_prefix":
+            last_deleted_rule = None
+            while True:
+                pf = state.setdefault("prefixes", default_prefixes())
+                pos_labels = {"system": t('tui_px_pos_system'), "user_before": t('tui_px_pos_before'),
+                              "user_after": t('tui_px_pos_after')}
+                p_choice = menu_dialog(stdscr, t('tui_px_title'), [
+                    (t('tui_px_opt_rules'), "rules"),
+                    (t('tui_px_opt_combo'), "combo"),
+                    (t('tui_px_opt_fallback'), "fallback"),
+                    (f"{t('tui_px_opt_pos')}  [{pos_labels[prefix_position(state['settings'])]}]", "pos"),
+                ])
+                if p_choice in (None, 'QUIT'):
+                    break
+
+                if p_choice == "rules":
+                    while True:
+                        rules = pf.setdefault("rules", [])
+                        opts = [(f"{r.get('key','')}: {str(r.get('rule','')).splitlines()[0][:46]}", r.get("key", ""))
+                                for r in rules if isinstance(r, dict)]
+                        sel_action, sel_val = menu_dialog(
+                            stdscr, t('tui_px_rules_title'), opts + [(t('tui_px_add'), "NEW")],
+                            hint=t('tui_hint_menu_del'), allow_delete=True, allow_undo=True, allow_search=True) or (None, None)
+                        if sel_action in (None, 'QUIT'):
+                            break
+                        idx = next((i for i, r in enumerate(rules) if r.get("key") == sel_val), None)
+                        if sel_action == 'DELETE' and idx is not None:
+                            last_deleted_rule = (idx, rules.pop(idx)); save_state(state)
+                        elif sel_action == 'UNDO' and last_deleted_rule:
+                            rules.insert(min(last_deleted_rule[0], len(rules)), last_deleted_rule[1])
+                            save_state(state); last_deleted_rule = None
+                        elif sel_action == 'SELECT':
+                            is_new = sel_val == "NEW"
+                            cur = {"key": "", "rule": ""} if is_new else rules[idx]
+                            res = form_dialog(
+                                stdscr, t('tui_px_fm_add') if is_new else t('tui_px_fm_edit'),
+                                [{"label": t('tui_lbl_prefix'), "value": cur.get("key", ""),
+                                  "hint": t('tui_px_key_hint')},
+                                 {"label": t('tui_lbl_rule'), "value": cur.get("rule", ""), "type": "textarea"}],
+                                show_delete=not is_new)
+                            if res == "DELETE" and idx is not None:
+                                last_deleted_rule = (idx, rules.pop(idx)); save_state(state)
+                            elif isinstance(res, list):
+                                key = res[0].strip().lower().strip(":：")
+                                if not re.fullmatch(r"[a-z]+", key or ""):
+                                    msgbox(stdscr, t('msg_info'), t('tui_px_bad_key'))
+                                elif res[1].strip():
+                                    entry = {"key": key, "rule": res[1].strip()}
+                                    # 先把这一条和任何同名的摘掉，再插回原来的位置——改名撞上
+                                    # 已有前缀时不会留下两条同名的
+                                    kept = [r for i, r in enumerate(rules)
+                                            if r.get("key") != key and (is_new or i != idx)]
+                                    at = len(kept) if is_new or idx is None else min(idx, len(kept))
+                                    kept.insert(at, entry)
+                                    rules[:] = kept
+                                    save_state(state)
+
+                elif p_choice in ("combo", "fallback"):
+                    is_combo = p_choice == "combo"
+                    field = {"label": t('tui_lbl_rule'), "type": "textarea",
+                             "value": str(pf.get(p_choice, "") or "")}
+                    if not is_combo:
+                        field["hint"] = t('tui_px_fallback_hint')
+                    res = form_dialog(stdscr, t('tui_px_combo_title') if is_combo else t('tui_px_fallback_title'),
+                                      [field])
+                    if isinstance(res, list):
+                        pf[p_choice] = res[0].strip(); save_state(state)
+
+                elif p_choice == "pos":
+                    cur = prefix_position(state["settings"])
+                    order = ["user_before", "user_after", "system"]
+                    sel = menu_dialog(stdscr, t('tui_px_pos_title'), [(pos_labels[k], k) for k in order],
+                                      default_idx=order.index(cur) if cur in order else 0)
+                    if sel and sel != 'QUIT':
+                        state["settings"]["prefix_position"] = sel; save_state(state)
+
+        elif choice == "edit_saver":
+            s = state["settings"]
+            auto_l, all_l = t('tui_inject_auto'), t('tui_inject_all')
+            yes_l, no_l = t('tui_yes'), t('tui_no')
+
+            def _pick(flag, on=None, off=None):
+                return (on or yes_l) if flag else (off or no_l)
+
+            fields_saver = [
+                {"label": t('tui_sv_prefix'), "type": "select", "options": [auto_l, all_l],
+                 "value": _pick(str(s.get("prefix_inject", "auto")) == "auto", auto_l, all_l)},
+                {"label": t('tui_sv_vocab'), "type": "select", "options": [auto_l, all_l],
+                 "value": _pick(str(s.get("vocab_inject", "auto")) == "auto", auto_l, all_l)},
+                {"label": t('tui_sv_nohist'), "value": str(s.get("no_history_prefixes", DEFAULT_NO_HISTORY_PREFIXES) or "")},
+                {"label": t('tui_sv_adaptive'), "type": "select", "options": [yes_l, no_l],
+                 "value": _pick(s.get("adaptive_max_tokens", True))},
+                {"label": t('tui_sv_mark'), "type": "select", "options": [yes_l, no_l],
+                 "value": _pick(s.get("prompt_cache_mark", True))},
+                {"label": t('tui_sv_disk'), "type": "select", "options": [yes_l, no_l],
+                 "value": _pick(s.get("reply_cache_disk", True))},
+                {"label": t('tui_sv_disk_min'), "value": str(s.get("reply_cache_min_len", DEFAULT_REPLY_CACHE_MIN_LEN))},
+                {"label": t('tui_sv_disk_max'), "value": str(s.get("reply_cache_max", DEFAULT_REPLY_CACHE_MAX))},
+                {"label": t('tui_sv_reset'), "type": "select", "options": [no_l, yes_l], "value": no_l},
+            ]
+            res = form_dialog(stdscr, t('tui_sv_title'), fields_saver)
+            if res:
+                s["prefix_inject"] = "auto" if res[0] == auto_l else "always"
+                s["vocab_inject"] = "auto" if res[1] == auto_l else "always"
+                s["no_history_prefixes"] = res[2].strip()
+                s["adaptive_max_tokens"] = (res[3] == yes_l)
+                s["prompt_cache_mark"] = (res[4] == yes_l)
+                s["reply_cache_disk"] = (res[5] == yes_l)
+                s["reply_cache_min_len"] = int(res[6]) if res[6].isdigit() else DEFAULT_REPLY_CACHE_MIN_LEN
+                s["reply_cache_max"] = int(res[7]) if res[7].isdigit() else DEFAULT_REPLY_CACHE_MAX
+                reset_prompt = res[8] == yes_l
+                if reset_prompt:
+                    default_prompt = get_default_state().get("settings", {}).get("prompt", "")
+                    if default_prompt:
+                        s["prompt"] = default_prompt
+                save_state(state)
+                if reset_prompt:
+                    msgbox(stdscr, t('msg_info'), t('tui_sv_reset_done'))
 
         elif choice == "edit_vocab":
             last_deleted_term, last_deleted_map = None, None

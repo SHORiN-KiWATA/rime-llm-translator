@@ -58,10 +58,15 @@ I18N = {
         "cli_fcitx_ok_sysd": "Fcitx5 restarted via systemd. Rime deployed.",
         "cli_fcitx_ok_cli": "Fcitx5 restarted via CLI. Rime deployed.",
         "cli_fcitx_fail": "Failed to restart Fcitx5 automatically: {}",
+        "schema_rime_ice": "Rime Ice (rime_ice)",
+        "schema_flypy": "Flypy double pinyin (double_pinyin_flypy)",
+        "schema_rime_ice_short": "Rime Ice",
+        "schema_flypy_short": "Flypy",
         "cli_tut_title": "Rime-LLM Translator Initialization Complete! Quick Start Guide",
-        "cli_tut_1": "1. Test Connect: Type test{}. If you see success msg, it works.",
-        "cli_tut_2": "2. Wake up AI : Type pinyin and press [{}].",
-        "cli_tut_2_ex": "(e.g., nihaoshijie{})",
+        "cli_tut_1": "1. Test Connect: type {}, then pick the success candidate.",
+        "cli_tut_1_item": "test{} ({})",
+        "cli_tut_2": "2. Wake up AI : type pinyin, then press the trigger key:",
+        "cli_tut_2_row": "     {} trigger [{}], e.g. {}",
         "cli_tut_3": "3. Config GUI : Run `rime-llm-config` in terminal.",
         "cli_tut_3_ex": "Supports model switching, custom vocab, parameter editing, etc.",
         "cli_init_start": "Start initializing Rime-LLM Translator...",
@@ -72,12 +77,12 @@ I18N = {
         "cli_init_upg_lua": "rime.lua upgraded: processor registration appended.",
         "cli_init_skip_lua": "rime.lua already configured. Skipped.",
         "cli_init_new_lua": "Created rime.lua and injected registration code.",
-        "cli_init_ice_det": "Detected Rime Ice (rime_ice) schema.",
-        "cli_init_ok_yaml": "Successfully appended LLM patch to rime_ice.custom.yaml.",
-        "cli_init_upg_yaml": "rime_ice.custom.yaml upgraded: processor patch added.",
-        "cli_init_skip_yaml": "rime_ice.custom.yaml already patched. Skipped.",
-        "cli_init_new_yaml": "Created rime_ice.custom.yaml with LLM patch.",
-        "cli_init_no_ice": "Rime Ice not detected. Please manually patch your custom.yaml.",
+        "cli_init_schema_det": "Detected schema: {}.",
+        "cli_init_ok_yaml": "LLM patch appended to {}.",
+        "cli_init_upg_yaml": "{} upgraded: missing LLM patch entries added.",
+        "cli_init_skip_yaml": "{} already patched. Skipped.",
+        "cli_init_new_yaml": "Created {} with LLM patch.",
+        "cli_init_no_schema": "Neither rime_ice nor double_pinyin_flypy detected. Please manually patch your custom.yaml.",
         "cli_sync_ok": "Sync successful. Lua config exported to: {}",
         "cli_catalog_ok": "Model catalog refreshed: {} providers → {}",
         "cli_catalog_fail": "Failed to refresh model catalog: {}",
@@ -272,10 +277,15 @@ I18N = {
         "cli_fcitx_ok_sysd": "已通过 Systemd 成功重启 Fcitx5，Rime 部署完毕。",
         "cli_fcitx_ok_cli": "已通过命令行指令重启 Fcitx5，Rime 部署完毕。",
         "cli_fcitx_fail": "自动重启 Fcitx5 失败: {}",
+        "schema_rime_ice": "雾凇拼音 (rime_ice)",
+        "schema_flypy": "小鹤双拼 (double_pinyin_flypy)",
+        "schema_rime_ice_short": "雾凇拼音",
+        "schema_flypy_short": "小鹤双拼",
         "cli_tut_title": "Rime-LLM Translator 初始化完成！快速上手指南",
-        "cli_tut_1": "1. 测试连通性 : 输入 test{}，若候选词出现挂载成功说明正常",
-        "cli_tut_2": "2. 唤醒大模型 : 正常输入拼音后，输入 [{}] 键呼出 AI 联想",
-        "cli_tut_2_ex": "(例如输入 nihaoshijie{})",
+        "cli_tut_1": "1. 测试连通性 : 输入 {}，候选词出现挂载成功即正常",
+        "cli_tut_1_item": "test{}（{}）",
+        "cli_tut_2": "2. 唤醒大模型 : 正常输入拼音后，按触发键呼出 AI 联想：",
+        "cli_tut_2_row": "     {} 触发键 [{}]，例如 {}",
         "cli_tut_3": "3. 更改配置项 : 随时在终端执行 `rime-llm-config` 打开图形界面",
         "cli_tut_3_ex": "支持热切换模型、自定义词库、修改参数或触发键等功能",
         "cli_init_start": "开始初始化 Rime-LLM Translator...",
@@ -286,12 +296,12 @@ I18N = {
         "cli_init_upg_lua": "rime.lua 已升级：补上了 processor 注册。",
         "cli_init_skip_lua": "rime.lua 已配置过，跳过注入。",
         "cli_init_new_lua": "已创建 rime.lua 并写入注册代码。",
-        "cli_init_ice_det": "检测到 雾凇拼音 (rime_ice) 方案。",
-        "cli_init_ok_yaml": "已向 rime_ice.custom.yaml 成功追加 LLM 补丁。",
-        "cli_init_upg_yaml": "rime_ice.custom.yaml 已升级：补上了 processor 补丁。",
-        "cli_init_skip_yaml": "rime_ice.custom.yaml 已打过补丁，跳过。",
-        "cli_init_new_yaml": "已新建 rime_ice.custom.yaml 并写入 LLM 补丁。",
-        "cli_init_no_ice": "未检测到雾凇拼音。如使用其他方案，请手动修改对应的 custom.yaml。",
+        "cli_init_schema_det": "检测到方案：{}。",
+        "cli_init_ok_yaml": "已向 {} 成功追加 LLM 补丁。",
+        "cli_init_upg_yaml": "{} 已升级：补上了缺失的 LLM 补丁。",
+        "cli_init_skip_yaml": "{} 已打过补丁，跳过。",
+        "cli_init_new_yaml": "已新建 {} 并写入 LLM 补丁。",
+        "cli_init_no_schema": "未检测到雾凇拼音或小鹤双拼。如使用其他方案，请手动修改对应的 custom.yaml。",
         "cli_sync_ok": "同步成功。已将 Lua 配置导出至: {}",
         "cli_catalog_ok": "模型目录已刷新：{} 个供应商 → {}",
         "cli_catalog_fail": "刷新模型目录失败: {}",
@@ -2338,43 +2348,315 @@ def restart_fcitx5():
     except Exception as e:
         print(f"{L_WARN} " + t("cli_fcitx_fail", str(e)))
 
-def print_tutorial():
+def print_tutorial(schemas=None):
     state = load_state()
-    trigger = state.get("settings", {}).get("ai_trigger", "vv")
+    pinyin_trigger = state.get("settings", {}).get("ai_trigger", "vv")
+    selected = [s for s in (schemas or []) if s in SCHEMA_LABELS] or [SCHEMA_RIME_ICE]
+    rows = []
+    for schema_id in selected:
+        if schema_id == SCHEMA_FLYPY:
+            rows.append((t("schema_flypy_short"), FLYPY_TRIGGER, FLYPY_EXAMPLE))
+        else:
+            rows.append((t("schema_rime_ice_short"), pinyin_trigger, PINYIN_EXAMPLE + pinyin_trigger))
 
     print(f"\n{C_CYN}{C_BLD}======================================================================={C_RES}")
     print(f"{C_GRN}{C_BLD}  {t('cli_tut_title')}{C_RES}")
     print(f"{C_CYN}{C_BLD}======================================================================={C_RES}")
-    print(f"  {C_YLW}{t('cli_tut_1', trigger)}{C_RES}")
-    print(f"  {C_YLW}{t('cli_tut_2', trigger)}{C_RES}")
-    print(f"  {C_GRY}                   {t('cli_tut_2_ex', trigger)}{C_RES}")
+    connect = " / ".join(t("cli_tut_1_item", trigger, label) for label, trigger, _ in rows)
+    print(f"  {C_YLW}{t('cli_tut_1', connect)}{C_RES}")
+    print(f"  {C_YLW}{t('cli_tut_2')}{C_RES}")
+    for label, trigger, example in rows:
+        print(f"  {C_GRY}{t('cli_tut_2_row', label, trigger, example)}{C_RES}")
     print(f"  {C_YLW}{t('cli_tut_3')}{C_RES}")
-    print(f"  {C_GRY}                   {t('cli_tut_3_ex')}{C_RES}")
+    print(f"  {C_GRY}{t('cli_tut_3_ex')}{C_RES}")
     print(f"{C_CYN}{C_BLD}======================================================================={C_RES}\n")
 
+# ==========================================
+# Rime 方案补丁
+# ==========================================
 # 雾凇默认 alphabet（含大写字母和辅码引导符 `）+ 本项目允许直接输入的标点
 RIME_ICE_ALPHABET = "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`"
+# 小鹤保留雾凇的辅码引导符 `，再允许分号：第一个 ; 进编码区，第二个由 processor 截获
+FLYPY_ALPHABET = RIME_ICE_ALPHABET + ";"
 LLM_EXTRA_ALPHABET = ".,?'!:<>\\\\/"
-OLD_ALPHABET_LINE = '"speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?\'!:<>\\\\/"'
-NEW_ALPHABET_LINE = f'"speller/alphabet": "{RIME_ICE_ALPHABET}{LLM_EXTRA_ALPHABET}"'
-PROCESSOR_LINE = '"engine/processors/@before 0": lua_processor@llm_processor'
-TRANSLATOR_LINE = '"engine/translators/@before 0": lua_translator@llm_translator'
+FLYPY_TRIGGER = ";;"
+PINYIN_EXAMPLE = "nihaoshijie"
+FLYPY_EXAMPLE = "nihcuijp" + FLYPY_TRIGGER
+
 RIME_LUA_TRANSLATOR = 'llm_translator = require("llm_translator")'
 RIME_LUA_PROCESSOR = 'llm_processor = llm_translator.processor'
-PATCH_CONTENT = f"""
-  # 1. 扩充允许输入的字符集：保留雾凇默认（含大写与辅码引导符 `），再允许在拼音中直接输入指定标点
-  {NEW_ALPHABET_LINE}
-  # 2. 触发键处理器：截获 vv 的第二个 v，把触发词从编码区拿掉并武装 AI 翻译
-  {PROCESSOR_LINE}
-  # 3. 将 Lua AI 脚本 (llm_translator) 插入到翻译器列表的第 0 位之前
-  {TRANSLATOR_LINE}
-  # 4. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理
-  "recognizer/patterns/llm_pinyin": "^[a-z][a-z.,?'!:<>/\\\\\\\\]*$"
-"""
 
-def init_rime_config():
+SCHEMA_RIME_ICE = "rime_ice"
+SCHEMA_FLYPY = "double_pinyin_flypy"
+SUPPORTED_SCHEMAS = (SCHEMA_RIME_ICE, SCHEMA_FLYPY)
+SCHEMA_LABELS = {SCHEMA_RIME_ICE: "schema_rime_ice", SCHEMA_FLYPY: "schema_flypy"}
+SYSTEM_RIME_DIRS = ("/usr/share/rime-data", "/usr/local/share/rime-data")
+
+# 每条补丁：(注释, patch 键, YAML 值)。第一分号进编码区，第二个由 processor 截获。
+def schema_patch_entries(schema_id):
+    if schema_id == SCHEMA_FLYPY:
+        return [
+            ("# 1. 扩充允许输入的字符集：保留雾凇的辅码引导符 `，再允许分号与常用标点",
+             "speller/alphabet", f'"{FLYPY_ALPHABET}{LLM_EXTRA_ALPHABET}"'),
+            ("# 2. 触发键处理器：截获 ;; 的第二个分号，把触发词从编码区拿掉并武装 AI 翻译",
+             "engine/processors/@before 0", "lua_processor@llm_processor"),
+            ("# 3. 将 Lua AI 脚本 (llm_translator) 插入到翻译器列表的第 0 位之前",
+             "engine/translators/@before 0", "lua_translator@llm_translator"),
+            ("# 4. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理（允许分号）",
+             "recognizer/patterns/llm_pinyin", '"^[a-z][a-z.,?\'!:<>;/\\\\\\\\]*$"'),
+            ("# 5. 告诉 Lua 侧当前是小鹤双拼：把双拼编码展开成全拼音节",
+             "llm_translator/input_scheme", '"flypy"'),
+            ("# 6. schema 级触发词覆盖全局触发键（vv 在小鹤里是 zhui，不能再用）",
+             "llm_translator/trigger", f'"{FLYPY_TRIGGER}"'),
+            ("# 7. 停用薄荷方案的 25 码输入限制，允许连续输入长句",
+             "codeLengthLimit_processor", "null"),
+        ]
+    return [
+        ("# 1. 扩充允许输入的字符集：保留雾凇默认（含大写与辅码引导符 `），再允许在拼音中直接输入指定标点",
+         "speller/alphabet", f'"{RIME_ICE_ALPHABET}{LLM_EXTRA_ALPHABET}"'),
+        ("# 2. 触发键处理器：截获 vv 的第二个 v，把触发词从编码区拿掉并武装 AI 翻译",
+         "engine/processors/@before 0", "lua_processor@llm_processor"),
+        ("# 3. 将 Lua AI 脚本 (llm_translator) 插入到翻译器列表的第 0 位之前",
+         "engine/translators/@before 0", "lua_translator@llm_translator"),
+        ("# 4. 定义正则捕获规则：把输入当成不可分割的整体喂给 AI 脚本处理",
+         "recognizer/patterns/llm_pinyin", '"^[a-z][a-z.,?\'!:<>/\\\\\\\\]*$"'),
+    ]
+
+def schema_patch_block(schema_id, indent="  "):
+    lines = []
+    for comment, key, value in schema_patch_entries(schema_id):
+        if comment:
+            lines.append(f"{indent}{comment}")
+        lines.append(f'{indent}"{key}": {value}')
+    return "\n".join(lines) + "\n"
+
+def render_schema_patch_file(schema_id):
+    return "patch:\n\n" + schema_patch_block(schema_id)
+
+PATCH_CONTENT = "\n" + schema_patch_block(SCHEMA_RIME_ICE)
+
+
+def _entry_line_pattern(key):
+    """兼容双引号、单引号和不加引号的 patch 键。"""
+    escaped = re.escape(key)
+    return re.compile(r'^([ \t]*)(?:"' + escaped + r'"|\'' + escaped + r'\'|' + escaped + r')\s*:.*$', re.M)
+
+
+def _line_is_key(line, key):
+    return _entry_line_pattern(key).match(line) is not None
+
+
+PROJECT_COMMENTS = {comment for schema in SUPPORTED_SCHEMAS
+                    for comment, _, _ in schema_patch_entries(schema)}
+
+
+def _refresh_comments(content, entries, touched):
+    """本项目自己写的编号注释跟着补丁键走（全拼块升级成小鹤时换成小鹤的措辞）；
+    注释只给这一轮新加的键补，用户手动加的注释和自定义值一律不碰。"""
+    lines = content.splitlines(keepends=True)
+    index = {key: i for i, line in enumerate(lines)
+             for _, key, _ in entries if _line_is_key(line, key)}
+    for comment, key, _ in entries:
+        if not comment:
+            continue
+        pos = index.get(key)
+        if pos is None:
+            continue
+        indent = lines[pos][:len(lines[pos]) - len(lines[pos].lstrip())]
+        prev = lines[pos - 1] if pos else ""
+        if prev.strip() == comment.strip():
+            continue
+        if prev.strip() in PROJECT_COMMENTS:
+            lines[pos - 1] = f"{indent}{comment}\n"
+        elif key in touched:
+            lines.insert(pos, f"{indent}{comment}\n")
+            for k, i in index.items():
+                if i >= pos:
+                    index[k] = i + 1
+    return "".join(lines)
+
+
+OLD_ICE_ALPHABET_LINE = '"speller/alphabet": "zyxwvutsrqponmlkjihgfedcba.,?\'!:<>\\\\/"'
+
+
+def _with_char_before(line, char, required):
+    """只修改标量值，不把键名或行尾注释里的字符当成值。"""
+    head, _, raw = line.partition(":")
+    spaces = raw[:len(raw) - len(raw.lstrip())]
+    raw = raw.lstrip()
+    quote = raw[:1] if raw[:1] in ('"', "'") else ""
+    if quote:
+        pos = 1
+        while pos < len(raw):
+            if quote == '"' and raw[pos] == "\\":
+                pos += 2
+                continue
+            if raw[pos] == quote:
+                if quote == "'" and raw[pos:pos + 2] == "''":
+                    pos += 2
+                    continue
+                break
+            pos += 1
+        if pos == len(raw):
+            return line, False
+        value, suffix = raw[1:pos], raw[pos + 1:]
+    else:
+        match = re.match(r"^(.*?)(\s+#.*)?$", raw)
+        value, suffix = match.group(1), match.group(2) or ""
+        trailing = value[len(value.rstrip()):]
+        value, suffix = value.rstrip(), trailing + suffix
+    if required in value:
+        return line, False
+    if char == '"':
+        value += required
+    else:
+        pos = value.rfind(char)
+        if pos < 0:
+            return line, False
+        value = value[:pos] + required + value[pos:]
+    return head + ":" + spaces + quote + value + quote + suffix, True
+
+
+def merge_schema_patch(content, schema_id):
+    """把方案补丁并入 custom.yaml 文本；返回 (新文本, 状态)。
+
+    状态：appended（文件里还没有本项目补丁，整块插入）/ upgraded（已有补丁但缺项或旧值，
+    就地补齐）/ skipped（已经是最新）。用户自己写的其他 patch 行原样保留。
+    """
+    patch = re.search(r"^patch:[ \t]*(?:#.*)?$", content, re.M)
+    if patch is None:
+        inline = re.search(r"^patch:[ \t]*\{[ \t]*\}[ \t]*(?:#.*)?$", content, re.M)
+        if inline:
+            content = content[:inline.start()] + "patch:" + content[inline.end():]
+            patch = re.search(r"^patch:[ \t]*$", content, re.M)
+        elif re.search(r"^patch:", content, re.M):
+            raise ValueError("Please expand the inline patch mapping before running init.")
+        else:
+            return content + ("" if not content or content.endswith("\n") else "\n") + "\npatch:\n" + schema_patch_block(schema_id), "appended"
+    # 只合并 patch: 块，避免把后面的其他顶层配置当成本项目补丁。
+    boundary = re.search(r"(?m)^[^ \t#\r\n]", content[patch.end():])
+    end = patch.end() + boundary.start() if boundary else len(content)
+    before, after = content[:patch.start()], content[end:]
+    content = content[patch.start():end]
+    indentation = re.search(r"(?m)^([ \t]+)\S", content)
+    block_indent = indentation.group(1) if indentation else "  "
+    entries = schema_patch_entries(schema_id)
+    has_any = any(_entry_line_pattern(key).search(content) for _, key, _ in entries)
+    # 用户已经手动写过同名 patch（哪怕没挂 llm_translator）也走增量合并，
+    # 免得同一个键在 YAML 里出现两次。
+    if "llm_translator" not in content and not has_any:
+        block = schema_patch_block(schema_id, block_indent)
+        match = re.search(r"^patch:[ \t]*(?:#.*)?$", content, re.M)
+        merged = content[:match.end()] + "\n" + block + content[match.end():].lstrip("\n")
+        return before + merged + after, "appended"
+
+    merged = content
+    missing = []
+    touched = set()
+    changed = False
+    for entry in entries:
+        comment, key, value = entry
+        desired = f'"{key}": {value}'
+        match = _entry_line_pattern(key).search(merged)
+        if not match:
+            missing.append(entry)
+            continue
+        current = match.group(0)
+        if current.strip() == desired:
+            continue
+        indent = match.group(1)
+        replacement = None
+        if key == "speller/alphabet":
+            if schema_id == SCHEMA_FLYPY:
+                # 先补分号（触发词要用），其余用户字符原样保留
+                line, fixed = _with_char_before(current, '"', ";")
+                if fixed: replacement = line
+            elif current.strip() == OLD_ICE_ALPHABET_LINE:
+                # 旧版 init 写下的字母表：升级成含标点的新版
+                replacement = indent + desired
+        elif key == "recognizer/patterns/llm_pinyin" and schema_id == SCHEMA_FLYPY:
+            line, fixed = _with_char_before(current, "]", ";")
+            if fixed: replacement = line
+        elif key in ("llm_translator/input_scheme", "llm_translator/trigger"):
+            # 方案级覆盖允许用户手动调整，重复 init 时不重置。
+            continue
+        else:
+            replacement = indent + desired
+        if replacement is not None and replacement != current:
+            merged = merged[:match.start()] + replacement + merged[match.end():]
+            touched.add(key)
+            changed = True
+
+    if missing:
+        if not merged.endswith("\n"):
+            merged += "\n"
+        lines = []
+        for comment, key, value in missing:
+            if comment and comment not in merged:
+                lines.append(block_indent + comment + "\n")
+            lines.append(f'{block_indent}"{key}": {value}\n')
+            touched.add(key)
+        # 追加到补丁块里已有的最后一条；没有就接在 patch: 后面，避免落到别的顶层键下
+        patch_match = re.search(r"^patch:[ \t]*(?:#.*)?$", merged, re.M)
+        last = None
+        for _, key, _ in entries:
+            match = _entry_line_pattern(key).search(merged)
+            if match and (last is None or match.end() > last):
+                last = match.end()
+        if last is None and patch_match:
+            last = patch_match.end()
+        if last is None:
+            merged += "".join(lines)
+        else:
+            merged = merged[:last] + "\n" + "".join(lines).rstrip("\n") + merged[last:]
+            if not merged.endswith("\n"):
+                merged += "\n"
+        changed = True
+    refreshed = _refresh_comments(merged, entries, touched)
+    if refreshed != merged:
+        merged = refreshed
+        changed = True
+    return before + merged + after, ("upgraded" if changed else "skipped")
+
+
+def schema_search_paths(rime_dir, schema_id, system_dirs=None):
+    """用户目录 → 用户 build 目录 → 系统目录（含系统 build）；build 里可能只有部署产物。"""
+    dirs = SYSTEM_RIME_DIRS if system_dirs is None else system_dirs
+    name = schema_id + ".schema.yaml"
+    paths = [os.path.join(rime_dir, name), os.path.join(rime_dir, "build", name)]
+    paths.extend(os.path.join(d, name) for d in dirs)
+    paths.extend(os.path.join(d, "build", name) for d in dirs)
+    return paths
+
+
+def schema_installed(rime_dir, schema_id, system_dirs=None):
+    return any(os.path.exists(p) for p in schema_search_paths(rime_dir, schema_id, system_dirs))
+
+
+def schema_custom_path(rime_dir, schema_id):
+    return os.path.join(rime_dir, schema_id + ".custom.yaml")
+
+
+def apply_schema_patch(rime_dir, schema_id):
+    custom_yaml = schema_custom_path(rime_dir, schema_id)
+    if not os.path.exists(custom_yaml):
+        with open(custom_yaml, "w", encoding="utf-8") as f:
+            f.write(render_schema_patch_file(schema_id))
+        return "created", custom_yaml
+    with open(custom_yaml, "r", encoding="utf-8") as f:
+        content = f.read()
+    merged, status = merge_schema_patch(content, schema_id)
+    if status == "skipped":
+        return status, custom_yaml
+    backup_file(custom_yaml)
+    with open(custom_yaml, "w", encoding="utf-8") as f:
+        f.write(merged)
+    return status, custom_yaml
+
+
+def init_rime_config(rime_dir=None):
     print(f"{L_INFO} " + t("cli_init_start"))
-    rime_dir = os.path.expanduser("~/.local/share/fcitx5/rime")
+    rime_dir = os.path.expanduser(rime_dir or "~/.local/share/fcitx5/rime")
     if not os.path.exists(rime_dir):
         print(f"{L_WARN} " + t("cli_init_mkdir", rime_dir))
         os.makedirs(rime_dir, exist_ok=True)
@@ -2401,41 +2683,22 @@ def init_rime_config():
         with open(rime_lua, 'w', encoding='utf-8') as f: f.write(lua_inject)
         print(f"{L_OK} " + t("cli_init_new_lua"))
 
-    ice_installed = os.path.exists("/usr/share/rime-data/rime_ice.schema.yaml") or \
-                    os.path.exists(os.path.join(rime_dir, "rime_ice.schema.yaml"))
-
-    if ice_installed:
-        print(f"{L_INFO} " + t("cli_init_ice_det"))
-        custom_yaml = os.path.join(rime_dir, "rime_ice.custom.yaml")
-        if os.path.exists(custom_yaml):
-            with open(custom_yaml, 'r', encoding='utf-8') as f: content = f.read()
-            if "llm_translator" not in content:
-                backup_file(custom_yaml)
-                if "patch:" in content:
-                    content = content.replace("patch:", "patch:\n" + PATCH_CONTENT, 1)
-                    with open(custom_yaml, 'w', encoding='utf-8') as f: f.write(content)
-                else:
-                    with open(custom_yaml, 'a', encoding='utf-8') as f: f.write("\npatch:\n" + PATCH_CONTENT)
-                print(f"{L_OK} " + t("cli_init_ok_yaml"))
-            elif "llm_processor" not in content:
-                backup_file(custom_yaml)
-                new_content = content.replace(OLD_ALPHABET_LINE, NEW_ALPHABET_LINE)
-                if TRANSLATOR_LINE in new_content:
-                    idx = new_content.index(TRANSLATOR_LINE)
-                    line_start = new_content.rfind("\n", 0, idx) + 1
-                    indent = new_content[line_start:idx]
-                    new_content = new_content[:line_start] + indent + PROCESSOR_LINE + "\n" + new_content[line_start:]
-                with open(custom_yaml, 'w', encoding='utf-8') as f: f.write(new_content)
-                print(f"{L_OK} " + t("cli_init_upg_yaml"))
-            else: print(f"{L_SKIP} " + t("cli_init_skip_yaml"))
-        else:
-            with open(custom_yaml, 'w', encoding='utf-8') as f: f.write("patch:\n" + PATCH_CONTENT)
-            print(f"{L_OK} " + t("cli_init_new_yaml"))
-    else:
-        print(f"{L_WARN} " + t("cli_init_no_ice"))
+    detected = [s for s in SUPPORTED_SCHEMAS if schema_installed(rime_dir, s)]
+    for schema_id in detected:
+        print(f"{L_INFO} " + t("cli_init_schema_det", t(SCHEMA_LABELS[schema_id])))
+        status, custom_yaml = apply_schema_patch(rime_dir, schema_id)
+        name = os.path.basename(custom_yaml)
+        if status == "created": print(f"{L_OK} " + t("cli_init_new_yaml", name))
+        elif status == "appended": print(f"{L_OK} " + t("cli_init_ok_yaml", name))
+        elif status == "upgraded": print(f"{L_OK} " + t("cli_init_upg_yaml", name))
+        else: print(f"{L_SKIP} " + t("cli_init_skip_yaml", name))
+    if not detected:
+        print(f"{L_WARN} " + t("cli_init_no_schema"))
 
     restart_fcitx5()
-    print_tutorial()
+    # 一个方案都没检测到时也给两种触发方式，用户手动改 custom.yaml 时知道该用哪个
+    print_tutorial(detected or list(SUPPORTED_SCHEMAS))
+
 
 def run_debug():
     print(f"\n{C_CYN}{C_BLD}======================================================================={C_RES}")

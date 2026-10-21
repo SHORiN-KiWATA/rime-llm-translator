@@ -292,8 +292,24 @@ local function load_config(force)
     return cfg, err
 end
 
-local function trigger_of(cfg)
-    local trigger = cfg and cfg.ai_trigger
+local function schema_string(env, key)
+    local schema = env and env.engine and env.engine.schema
+    return schema and schema.config and schema.config:get_string("llm_translator/" .. key)
+end
+
+local function input_scheme_of(env)
+    local configured = schema_string(env, "input_scheme")
+    if configured and configured ~= "" then return configured end
+    local schema = env and env.engine and env.engine.schema
+    return schema and schema.schema_id == "double_pinyin_flypy" and "flypy" or "pinyin"
+end
+
+local function trigger_of(cfg, env)
+    local trigger = schema_string(env, "trigger")
+    if type(trigger) == "string" and trigger ~= "" then return trigger end
+    -- vv 是小鹤的 zhui（追），不能再用作 AI 触发词。
+    if input_scheme_of(env) == "flypy" then return ";;" end
+    trigger = cfg and cfg.ai_trigger
     if type(trigger) ~= "string" or trigger == "" then trigger = "vv" end
     return trigger
 end
@@ -356,6 +372,105 @@ local function split_prefix(text)
         rest = tail
     end
     return segs, rest
+end
+
+-- 小鹤双拼：按 https://github.com/rime/rime-double-pinyin 的键位展开为全拼。
+-- 只收合法音节，无法识别的码和末尾单个声母保留给模型纠错。
+local FLYPY_FINALS = {
+    a = "a", ai = "d", an = "j", ang = "h", ao = "c", e = "e", ei = "w",
+    en = "f", eng = "g", i = "i", ia = "x", ian = "m", iang = "l", iao = "n",
+    ie = "p", ["in"] = "b", ing = "k", iong = "s", iu = "q", o = "o", ong = "s",
+    ou = "z", u = "u", ua = "x", uai = "k", uan = "r", uang = "l", ue = "t",
+    ui = "v", un = "y", uo = "o", v = "v", ve = "t",
+}
+local FLYPY_INITIALS = { zh = "v", ch = "i", sh = "u" }
+local flypy_syllables = {
+    aa = "a", ai = "ai", an = "an", ah = "ang", ao = "ao",
+    ee = "e", ei = "ei", en = "en", eg = "eng", er = "er", oo = "o", ou = "ou",
+}
+local PINYIN_FINALS = {
+    b = "a ai an ang ao ei en eng i ian iang iao ie in ing o u",
+    p = "a ai an ang ao ei en eng i ian iao ie in ing o ou u",
+    m = "a ai an ang ao e ei en eng i ian iao ie in ing iu o ou u",
+    f = "a an ang ei en eng iao o ou u",
+    d = "a ai an ang ao e ei en eng i ia ian iao ie ing iu ong ou u uan ui un uo",
+    t = "a ai an ang ao e ei eng i ian iao ie ing ong ou u uan ui un uo",
+    n = "a ai an ang ao e ei en eng i ian iang iao ie in ing iu ong ou u uan un uo v ve",
+    l = "a ai an ang ao e ei eng i ia ian iang iao ie in ing iu ong ou u uan un uo v ve",
+    g = "a ai an ang ao e ei en eng ong ou u ua uai uan uang ui un uo",
+    k = "a ai an ang ao e ei en eng ong ou u ua uai uan uang ui un uo",
+    h = "a ai an ang ao e ei en eng ong ou u ua uai uan uang ui un uo",
+    j = "i ia ian iang iao ie in ing iong iu u uan ue un",
+    q = "i ia ian iang iao ie in ing iong iu u uan ue un",
+    x = "i ia ian iang iao ie in ing iong iu u uan ue un",
+    zh = "a ai an ang ao e ei en eng i ong ou u ua uai uan uang ui un uo",
+    ch = "a ai an ang ao e en eng i ong ou u ua uai uan uang ui un uo",
+    sh = "a ai an ang ao e ei en eng i ou u ua uai uan uang ui un uo",
+    r = "an ang ao e en eng i ong ou u ua uan ui un uo",
+    z = "a ai an ang ao e ei en eng i ong ou u uan ui un uo",
+    c = "a ai an ang ao e ei en eng i ong ou u uan ui un uo",
+    s = "a ai an ang ao e en eng i ong ou u uan ui un uo",
+    y = "a an ang ao e i in ing o ong ou u uan ue un",
+    w = "a ai an ang ei en eng o u",
+}
+for initial, finals in pairs(PINYIN_FINALS) do
+    for final in string.gmatch(finals, "%S+") do
+        local code = (FLYPY_INITIALS[initial] or initial) .. FLYPY_FINALS[final]
+        flypy_syllables[code] = initial .. final
+    end
+end
+-- 官方方案也允许 jqxy 的 ü 写法。
+for _, initial in ipairs({ "j", "q", "x", "y" }) do
+    flypy_syllables[initial .. "v"] = initial .. "u"
+end
+
+local function expand_flypy(cfg, text)
+    local prefixes, body = split_prefix(text)
+    local protected = {}
+    local vocab = cfg and cfg.vocab or {}
+    for _, word in ipairs(vocab.terms or {}) do
+        if type(word) == "string" and word ~= "" then protected[#protected + 1] = word end
+    end
+    for _, kv in ipairs(vocab.maps or {}) do
+        if type(kv[1]) == "string" and kv[1] ~= "" then protected[#protected + 1] = kv[1] end
+    end
+    table.sort(protected, function(a, b) return #a > #b end)
+    local low = string.lower(body)
+    local function protected_at(pos)
+        for _, word in ipairs(protected) do
+            if string.sub(low, pos, pos + #word - 1) == string.lower(word) then return #word end
+        end
+    end
+    local out, pos = {}, 1
+    while pos <= #body do
+        local count = protected_at(pos)
+        local ch = string.sub(body, pos, pos)
+        if count then
+            out[#out + 1] = " " .. string.sub(body, pos, pos + count - 1) .. " "
+            pos = pos + count
+        elseif string.match(ch, "[a-z]") then
+            local syllables = {}
+            repeat
+                local code = string.sub(body, pos, pos + 1)
+                local syllable = flypy_syllables[code]
+                -- 合法音节优先：mkyi 是 ming yi，不能因为词库里有 ky 切成 m ky i
+                if #code == 2 and string.match(code, "^[a-z][a-z]$") and (syllable or not protected_at(pos + 1)) then
+                    syllables[#syllables + 1] = syllable or code
+                    pos = pos + 2
+                else
+                    syllables[#syllables + 1] = string.sub(body, pos, pos)
+                    pos = pos + 1
+                end
+            until pos > #body or not string.match(string.sub(body, pos, pos), "[a-z]") or protected_at(pos)
+            out[#out + 1] = " " .. table.concat(syllables, " ") .. " "
+        else
+            out[#out + 1] = ch
+            pos = pos + 1
+        end
+    end
+    local expanded = trim((string.gsub(table.concat(out), " +", " ")))
+    if #prefixes == 0 then return expanded end
+    return table.concat(prefixes, ":") .. ":" .. expanded
 end
 
 -- 连写的一段按已知词从左到右贪婪切开；切不干净返回 nil，调用方原样放过
@@ -1218,7 +1333,7 @@ end
 local function translator_func(input, seg, env)
     local ctx = env.engine.context
     local cfg, cfg_err = load_config()
-    local trigger = trigger_of(cfg)
+    local trigger = trigger_of(cfg, env)
     trace("translator: input=", input, "seg=", seg.start, seg._end, "ctx.input=", ctx.input, "armed=", ctx:get_property(PROP_ARMED), "cfg=", cfg and "ok" or cfg_err)
 
     -- 1) processor 武装：编码区是纯拼音，property 记着武装时的拼音
@@ -1243,6 +1358,8 @@ local function translator_func(input, seg, env)
         yield_error(seg, send_text, cfg_err)
         return
     end
+
+    if input_scheme_of(env) == "flypy" then send_text = expand_flypy(cfg, send_text) end
 
     send_text = string.gsub(send_text, "[\\/]", "、")
     if #send_text == 0 then return end
@@ -1361,10 +1478,11 @@ local function processor_func(key, env)
     if not ctx:is_composing() then return kNoop end
 
     local cfg = load_config()
-    local trigger = trigger_of(cfg)
+    local trigger = trigger_of(cfg, env)
     -- 单字符触发词沿用旧接法（拼音以它结尾），不截获，免得 lv / nv 打不出来
     if #trigger < 2 then return kNoop end
-    if key:repr() ~= string.sub(trigger, -1) then return kNoop end
+    -- 标点的 repr() 是 semicolon 等 X11 名称，keycode 才是实际字符码。
+    if key.keycode ~= string.byte(trigger, -1) then return kNoop end
 
     local input = ctx.input
     local caret = ctx.caret_pos
@@ -1411,6 +1529,9 @@ return {
     fini = translator_fini,
     processor = { init = processor_init, func = processor_func, fini = processor_fini },
     -- 供离线测试使用
+    _expand_flypy = expand_flypy,
+    _input_scheme_of = input_scheme_of,
+    _trigger_of = trigger_of,
     _json = json,
     _build_body = build_body,
     _extract_reply = extract_reply,

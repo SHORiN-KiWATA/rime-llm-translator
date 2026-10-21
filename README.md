@@ -1,6 +1,6 @@
 # rime-llm-translator
 
-给Rime输入法接入大模型进行拼音联想，支持TUI图形化配置。平时正常输入，在遇到长难句或者生僻句的时候通过双击v键呼叫Ai对拼音进行处理。输入的时候不太需要考虑输入的拼音是否正确，大模型强大的预测功能会自动把误拼甚至乱序处理成正确的句子。对于句子中的英文词汇也能正常处理，甚至还能补充正确的空格和标点符号。
+给Rime输入法接入大模型进行拼音联想，支持全拼和小鹤双拼，支持TUI图形化配置。平时正常输入，在遇到长难句或者生僻句的时候通过双击v键（全拼）或双击分号键（小鹤双拼）呼叫Ai对拼音进行处理。输入的时候不太需要考虑输入的拼音是否正确，大模型强大的预测功能会自动把误拼甚至乱序处理成正确的句子。对于句子中的英文词汇也能正常处理，甚至还能补充正确的空格和标点符号。
 
 >甚至还能用输入法跟ai聊天，装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话还能用 `miyu:` 前缀直接找她说话。
 
@@ -32,9 +32,9 @@
 
 ## 使用方法
 
-1. 安装rime和雾凇拼音
+1. 安装rime和雾凇拼音，或安装 Rime 的小鹤双拼（方案 ID：`double_pinyin_flypy`）
 
-    > 对其他基于rime的输入法方案也是生效的，例如万象拼音，但是要自己手动配置。
+    > 初始化会自动识别雾凇全拼、雾凇小鹤双拼和官方小鹤双拼。其他基于rime的输入法方案（例如万象拼音）需要手动配置。
 
     输入法安装方法可以看[ShorinArch_中文输入法](https://github.com/SHORiN-KiWATA/Shorin-ArchLinux-Guide/wiki/%E4%B8%AD%E6%96%87%E8%BE%93%E5%85%A5%E6%B3%95)
 
@@ -68,7 +68,7 @@
       ```
       > 如果已经存在的话会备份后在文件末尾追加；旧版只有第一行的会补上第二行
     
-    - 如果检测到安装了雾凇拼音的话会新建`rime_ice.custom.yaml`写入patch，启用处理器和翻译器并配置一些上屏规则；
+    - 如果检测到安装了雾凇全拼或小鹤双拼，会分别更新 `rime_ice.custom.yaml`、`double_pinyin_flypy.custom.yaml`，启用处理器和翻译器并配置一些上屏规则。已有配置会备份，重复初始化不会重复插入补丁。全拼补丁如下：
 
       ```
       patch:
@@ -90,6 +90,43 @@
     > 本机装了 `claude` / `codex` / `agy` / `opencode` / `miyu` 中任意一个的话，不用填 key 也能直接用，见下面的「本机 CLI 后端」。
 
     > opencode zen 从 09-19 起给免费模型加了一道「只能从 OpenCode 里用」的闸，第三方客户端一律 `403 · OpenCode's free tier can only be used from within OpenCode`。实测判据是请求得长得像 opencode 发的：流式、工具清单里有 `shell` 和 `read`、带 `x-opencode-*` 头。所以发往 `opencode.ai/zen` 的请求会自动改成这个形状（流式 + 两条永不调用的占位工具声明），其他节点一个字节都不动。这是对面服务端的策略，他们随时可能改判据，免费模型又开始报 403 的话就是这里过期了。
+
+### 小鹤双拼
+
+安装并在 Rime 方案选单中启用 `double_pinyin_flypy`，然后运行 `rime-llm-config init` 并重新部署。切换到「小鹤双拼」后：
+
+| 输入 | 行为 |
+| --- | --- |
+| `test;;` | 显示挂载成功，无需调用模型 |
+| `nihcuijp;;` | 把 `ni hao shi jie` 交给模型，联想「你好世界」 |
+| `jp:nihcuijp;;` | 联想后按 `jp:` 规则输出日文 |
+| `vv` | 正常输入「追」等 `zhui` 音节 |
+
+小鹤的 `vv` 是有效编码，因此固定使用方案级的 `;;` 触发键；全拼继续使用全局设置里的触发键，默认 `vv`。初始化会为小鹤额外允许分号进入编码区，并添加：
+
+```yaml
+patch:
+  "llm_translator/input_scheme": "flypy"
+  "llm_translator/trigger": ";;"
+```
+
+这两项与初始化生成的处理器、翻译器、alphabet 和 recognizer 补丁一起使用。使用其他 ID 的自定义小鹤方案时，可将 `double_pinyin_flypy.custom.yaml` 中的这些补丁合并到对应方案的 `.custom.yaml`，保留自己的其他配置。可通过 `llm_translator/trigger` 单独修改触发键，同时在 alphabet 和 recognizer 中允许相应字符；`llm_translator/input_scheme: pinyin` 可以关闭该方案的双拼展开。
+
+薄荷小鹤方案默认通过 `codeLengthLimit_processor: 25` 限制编码长度，超过后会删除末尾输入，长句无法完整交给 AI。小鹤初始化补丁会用 `"codeLengthLimit_processor": null` 停用这个限制；已初始化过的用户再次运行 `rime-llm-config init` 并重新部署即可升级。该补丁也适用于没有此处理器的官方和雾凇小鹤方案。需要恢复原方案的长度限制时，从 `double_pinyin_flypy.custom.yaml` 删除这条补丁后重新部署。
+
+请求发送前，小鹤编码会按标准键位展开成带音节空格的全拼，支持零声母、`zh/ch/sh`、`ü` 和共用韵母键。前缀保持原样，HTTP、CLI 和 Miyu 后端共用这一步转换。自定义词库中的「常用英文词」和「拼音缩写映射」会保留原拼写；混输英文建议先加入常用英文词，或使用全大写拼写。无法识别的双字母码和末尾单个声母会原样交给模型纠错，未配置映射的简拼仍可能存在歧义。小鹤音形、形码和其他双拼布局不在当前支持范围内。
+
+从源码安装到用户目录（无需覆盖系统文件）：
+
+```sh
+install -Dm644 src/llm_translator.lua ~/.local/share/fcitx5/rime/lua/llm_translator.lua
+install -Dm755 src/rime-llm-config ~/.local/bin/rime-llm-config
+install -Dm644 src/default_state.json ~/.local/bin/default_state.json
+~/.local/bin/rime-llm-config init
+~/.local/bin/rime-llm-config
+```
+
+本地回归验证：`python3 -m unittest discover -s tests -v`，需要 Python 3、Lua 和 curl，测试仅使用临时目录及本地 HTTP 服务。
 
 ## 本机 CLI 后端
 
@@ -193,7 +230,7 @@ miyu:wogangcaishuolesm    →  你说的是测试一下。
     llm_processor = llm_translator.processor
     ```
 
-2. 删除 `~/.local/share/fcitx5/rime/rime_ice.custom.yaml` 中的四条 patch（如果文件是 init 新建的，直接删文件）：
+2. 删除 `~/.local/share/fcitx5/rime/rime_ice.custom.yaml` 中的四条 patch；小鹤双拼还需要从 `double_pinyin_flypy.custom.yaml` 删除对应的 alphabet、processor、translator、recognizer 以及 `llm_translator/input_scheme`、`llm_translator/trigger`、`codeLengthLimit_processor` 补丁（如果文件是 init 新建的，直接删文件）：
 
     ```
       # 1. 扩充允许输入的字符集：保留雾凇默认（含大写与辅码引导符 `），再允许在拼音中直接输入指定标点

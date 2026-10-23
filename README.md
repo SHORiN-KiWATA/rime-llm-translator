@@ -255,3 +255,11 @@ miyu:wogangcaishuolesm    →  你说的是测试一下。
     > 调试日志在 `~/.cache/rime-llm-translator/debug.log`，请求时的临时文件在 `$XDG_RUNTIME_DIR/rime-llm-translator/`，都会随上面两个目录或重启一起消失。
 
 4. 重启 fcitx5（或在托盘菜单点「重新部署」）让 Rime 重新部署。
+
+## 赞助
+
+如果这个项目帮到了你，欢迎请我喝杯咖啡 ☕ 你的支持会让它持续更新下去。
+
+<img src="https://raw.githubusercontent.com/SHORiN-KiWATA/.github/main/images/wechat.jpg" width="200" alt="微信赞赏码"> <img src="https://raw.githubusercontent.com/SHORiN-KiWATA/.github/main/images/alipay.png" width="134" alt="支付宝收款码">
+
+手机上看可以打开 [赞助页](https://github.com/SHORiN-KiWATA/.github/blob/main/SPONSOR.md)，支付宝能直接点链接付款。

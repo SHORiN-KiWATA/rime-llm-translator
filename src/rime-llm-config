@@ -47,7 +47,7 @@ I18N = {
         "cli_help_stat": "  status           : Show current configuration info.",
         "cli_help_debug": "  debug            : Start real-time debug monitor.",
         "cli_help_ask": "  ask <text>       : One-shot answer via the active node (used by Lua for CLI backends).",
-        "cli_help_chat": "  chat <text>      : Talk to Miyu's fixed session (used by Lua for the `miyu:` prefix).",
+        "cli_help_chat": "  chat <text>      : Talk to the fixed LiteMiyu / Miyu session (used by Lua for the `miyu:` prefix); `chat --reset` starts a new session.",
         "cli_help_catalog": "  catalog          : Refresh the models.dev model catalog cache.",
         "cli_help_usage": "  usage [--reset]  : Show (or clear) the token usage counters.",
         "cli_help_reset_prompt": "  reset-prompt     : Restore the system prompt to the shipped default.",
@@ -93,7 +93,7 @@ I18N = {
         "cli_stat_extra": "Request extra  :",
         "cli_stat_state": "State File     :",
         "cli_stat_lua": "Lua Config     :",
-        "cli_stat_miyu": "Miyu chat",
+        "cli_stat_miyu": "LiteMiyu / Miyu chat",
         "cli_stat_saver": "Token saving",
         "cli_usage_title": "[ Token usage ]",
         "cli_usage_none": "No requests recorded yet. Type something with the AI trigger first.",
@@ -134,13 +134,13 @@ I18N = {
         "tui_st_miyu_wait": "Inline wait (s)",
         "tui_st_miyu_tools": "May use tools",
         "tui_st_miyu_prompt": "Host instructions",
-        "tui_st_miyu_binary": "miyu path (empty=auto)",
+        "tui_st_miyu_binary": "litemiyu / miyu path (empty=auto)",
         "tui_yes": "Yes",
         "tui_no": "No",
-        "tui_opt_miyu": "Chat with Miyu  [{}]",
-        "tui_miyu_title": " Chat with Miyu ",
+        "tui_opt_miyu": "Chat with LiteMiyu / Miyu  [{}]",
+        "tui_miyu_title": " Chat with LiteMiyu / Miyu ",
         "tui_miyu_off": "off",
-        "tui_miyu_bad": "Miyu is not usable right now:\n{}\n\nSettings are still editable.",
+        "tui_miyu_bad": "Neither LiteMiyu nor Miyu is usable right now:\n{}\n\nSettings are still editable.",
 
         # TUI Token saving
         "tui_opt_saver": "Token Saving & Cache",
@@ -181,8 +181,9 @@ I18N = {
         "tui_sv_reset_done": "System prompt restored to the shipped default.",
         "chat_bg": "still thinking after {}s, handed off; you will get a notification",
         "chat_bg_lost": "the background worker returned nothing",
-        "chat_notify_ok": "Miyu",
-        "chat_notify_err": "Miyu (failed)",
+        "chat_notify_ok": "LiteMiyu / Miyu",
+        "chat_notify_err": "LiteMiyu / Miyu (failed)",
+        "chat_reset_done": "The chat session '{}' starts fresh with the next message.",
 
         # TUI Vocab
         "tui_vc_title": " Custom Vocabulary ",
@@ -249,9 +250,10 @@ I18N = {
         "tui_sm_catalog_ok": "models.dev catalog updated ({} providers)",
         "tui_sm_catalog_fail": "models.dev catalog unavailable, using built-in heuristics",
         "tui_sm_err_external": "Imported node ({}); only model and thinking level can be changed here.",
-        "tui_sm_err_ext_del": "Imported nodes come back on next launch; uninstall the CLI or disable it in Miyu.",
+        "tui_sm_err_ext_del": "Imported nodes come back on next launch; uninstall the CLI or remove the provider in LiteMiyu / Miyu.",
         "tui_sm_tag_cli": "CLI",
         "tui_sm_tag_miyu": "Miyu",
+        "tui_sm_tag_litemiyu": "LiteMiyu",
         "msg_info": " Info ",
         "proto_auto": "Auto (by URL)",
         "proto_openai": "OpenAI Chat",
@@ -266,7 +268,7 @@ I18N = {
         "cli_help_stat": "  status           : 显示当前配置信息",
         "cli_help_debug": "  debug            : 启动实时调试监控，并开启日志记录",
         "cli_help_ask": "  ask <文本>       : 用当前节点做一次性问答(Lua 侧走本机 CLI 后端时调用)",
-        "cli_help_chat": "  chat <文本>      : 跟 Miyu 的固定会话聊一句(Lua 侧遇到 `miyu:` 前缀时调用)",
+        "cli_help_chat": "  chat <文本>      : 跟 LiteMiyu / Miyu 的固定会话聊一句(Lua 侧遇到 `miyu:` 前缀时调用)；`chat --reset` 重开会话",
         "cli_help_catalog": "  catalog          : 刷新 models.dev 模型目录缓存",
         "cli_help_usage": "  usage [--reset]  : 查看（或清空）token 用量统计。",
         "cli_help_reset_prompt": "  reset-prompt     : 把提示词恢复为程序自带的默认版本。",
@@ -312,7 +314,7 @@ I18N = {
         "cli_stat_extra": "请求附加字段 :",
         "cli_stat_state": "JSON状态文件 :",
         "cli_stat_lua": "Lua 配置路径 :",
-        "cli_stat_miyu": "Miyu 聊天",
+        "cli_stat_miyu": "LiteMiyu / Miyu 聊天",
         "cli_stat_saver": "省 token",
         "cli_usage_title": "[ token 用量 ]",
         "cli_usage_none": "还没有记录。先用触发键打一句试试。",
@@ -351,15 +353,15 @@ I18N = {
         "tui_st_miyu_session": "会话名",
         "tui_st_miyu_timeout": "回复超时 (秒)",
         "tui_st_miyu_wait": "输入法等待 (秒)",
-        "tui_st_miyu_tools": "允许她使用工具",
+        "tui_st_miyu_tools": "允许使用工具",
         "tui_st_miyu_prompt": "宿主指令",
-        "tui_st_miyu_binary": "miyu 路径 (留空自动)",
+        "tui_st_miyu_binary": "litemiyu / miyu 路径 (留空自动)",
         "tui_yes": "是",
         "tui_no": "否",
-        "tui_opt_miyu": "跟 Miyu 聊天  [{}]",
-        "tui_miyu_title": " 跟 Miyu 聊天 ",
+        "tui_opt_miyu": "跟 LiteMiyu / Miyu 聊天  [{}]",
+        "tui_miyu_title": " 跟 LiteMiyu / Miyu 聊天 ",
         "tui_miyu_off": "已关闭",
-        "tui_miyu_bad": "现在还用不了 Miyu：\n{}\n\n设置仍然可以先填好。",
+        "tui_miyu_bad": "现在还用不了 LiteMiyu 或 Miyu：\n{}\n\n设置仍然可以先填好。",
 
         # TUI 省 token
         "tui_opt_saver": "省 token 与缓存",
@@ -400,8 +402,9 @@ I18N = {
         "tui_sv_reset_done": "提示词已恢复为程序自带的默认版本。",
         "chat_bg": "{}秒还没答完，已转后台，答完弹通知",
         "chat_bg_lost": "后台没有返回内容",
-        "chat_notify_ok": "Miyu",
-        "chat_notify_err": "Miyu（失败）",
+        "chat_notify_ok": "LiteMiyu / Miyu",
+        "chat_notify_err": "LiteMiyu / Miyu（失败）",
+        "chat_reset_done": "聊天会话「{}」已重开，下一句开始新的对话。",
 
         # TUI Vocab
         "tui_vc_title": " 自定义词库 ",
@@ -468,9 +471,10 @@ I18N = {
         "tui_sm_catalog_ok": "models.dev 模型目录已更新（{} 个供应商）",
         "tui_sm_catalog_fail": "models.dev 目录不可用，按内置规则推断思考档位",
         "tui_sm_err_external": "该节点为自动导入({})，此处只能改模型和思考档位。",
-        "tui_sm_err_ext_del": "自动导入的节点下次启动会回来；请卸载对应 CLI 或在 Miyu 里禁用它。",
+        "tui_sm_err_ext_del": "自动导入的节点下次启动会回来；请卸载对应 CLI，或在 LiteMiyu / Miyu 里删掉这家供应商。",
         "tui_sm_tag_cli": "CLI",
         "tui_sm_tag_miyu": "Miyu",
+        "tui_sm_tag_litemiyu": "LiteMiyu",
         "msg_info": " 提示 ",
         "proto_auto": "自动 (按 URL 判断)",
         "proto_openai": "OpenAI Chat",
@@ -503,15 +507,14 @@ RUNTIME_TMP_DIR = os.path.join(RUNTIME_DIR, "rime-llm-translator") if RUNTIME_DI
 CONFIG_TMP_DIR = os.path.join(CONFIG_DIR, "tmp")
 DEBUG_FLAG = os.path.join(RUNTIME_DIR or CACHE_DIR, "rime-llm-debug.flag")
 DEBUG_LOG = os.path.join(CACHE_DIR, "debug.log")
-# 本机可能同时装着包管理器的旧版和自编译的新版，探测结果按 (路径, mtime, 大小) 缓存
-MIYU_CAPS_FILE = os.path.join(CACHE_DIR, "miyu_caps.json")
+# 聊天前缀的固定会话：LiteMiyu / Miyu 的会话编号记在这里（照「哪一家 + 会话名」记，换了会话名就是新的会话）
+CHAT_SESSIONS_FILE = os.path.join(CACHE_DIR, "chat_sessions.json")
 CHAT_LAST_FILE = os.path.join(CACHE_DIR, "last_chat.txt")
 REPLY_CACHE_FILE = os.path.join(CACHE_DIR, "replies.json")
 USAGE_FILE = os.path.join(CACHE_DIR, "usage.json")
-MIYU_HOME = os.environ.get("MIYU_HOME", os.path.expanduser("~/.miyu"))
-MIYU_CONFIG = os.path.join(MIYU_HOME, "config", "config.jsonc")
-MIYU_CATALOG = os.path.join(MIYU_HOME, "cache", "models_cache.json")
-MIYU_THINKING = os.path.join(MIYU_HOME, "state", "thinking-variants.json")
+# 只读导入供应商的两家：LiteMiyu、Miyu（2026 年起的新版）。profile 的 source 写的就是这两个名字。
+# 旧版 Miyu（0.7.x）的配置文件、命令行是另一套，不再支持。
+AGENT_SOURCES = ("litemiyu", "miyu")
 DEFAULT_CLI_TIMEOUT = 60.0
 
 # 省 token：提示词里随输入变化的部分（前缀规则、命中的词库）按需注入，常驻核心保持恒定，
@@ -602,7 +605,7 @@ DEFAULT_MIYU_PROMPT = (
 #   auto          按 api_url 判断是 OpenAI Chat 还是 Anthropic Messages（默认）
 #   openai-chat   OpenAI Chat Completions 及所有兼容端点
 #   anthropic     Anthropic Messages
-#   claude-code / codex / antigravity / opencode / miyu   本机 CLI，由 `rime-llm-config ask` 完成问答
+#   claude-code / codex / antigravity / opencode / litemiyu / miyu   本机 CLI，由 `rime-llm-config ask` 完成问答
 # 导出 config.lua 时 auto 会被解析成具体协议，Lua 侧不再猜厂商。
 CLI_BACKENDS = {
     "claude-code": {
@@ -622,6 +625,10 @@ CLI_BACKENDS = {
         "id": "opencode_cli", "name": "opencode CLI", "binary": "opencode",
         "models": ["opencode/big-pickle", "opencode/mimo-v2.5-free"], "default": "opencode/big-pickle",
     },
+    "litemiyu": {
+        "id": "litemiyu", "name": "LiteMiyu CLI", "binary": "litemiyu",
+        "models": ["auto"], "default": "auto",
+    },
     "miyu": {
         "id": "miyu", "name": "Miyu CLI", "binary": "miyu",
         "models": ["auto"], "default": "auto",
@@ -635,7 +642,7 @@ PROTOCOL_ALIASES = {
     "claude-code": "claude-code", "claude-code-cli": "claude-code",
     "codex": "codex", "codex-cli": "codex",
     "antigravity": "antigravity", "antigravity-cli": "antigravity", "agy": "antigravity",
-    "opencode": "opencode", "miyu": "miyu",
+    "opencode": "opencode", "litemiyu": "litemiyu", "miyu": "miyu",
 }
 
 
@@ -675,6 +682,8 @@ def profile_binary(profile):
 
 
 def profile_tag(profile):
+    if profile.get("source") == "litemiyu":
+        return t("tui_sm_tag_litemiyu")
     if profile.get("source") == "miyu":
         return t("tui_sm_tag_miyu")
     if profile_is_cli(profile):
@@ -708,7 +717,7 @@ def protocol_from_label(label):
 # profile["thinking"] = {"<model>": "<variant id>"}；id 取值：
 #   off  关闭 / 供应商默认            on   开启（toggle 型）
 #   none / minimal / low / medium / high / xhigh / max   effort 型
-# 变体列表来自 models.dev 目录（本机有 Miyu 就直接用它的缓存），拿不到目录时按厂商族回退。
+# 变体列表来自 models.dev 目录（本机有 LiteMiyu / Miyu 就直接用它们的缓存），拿不到目录时按厂商族回退。
 VARIANT_ORDER = ["off", "on", "none", "minimal", "low", "medium", "high", "xhigh", "max"]
 VARIANT_LABELS = {
     "zh": {"off": "关闭 / 默认 (off)", "on": "开启 (on)", "none": "无 (none)", "minimal": "最少 (minimal)",
@@ -727,7 +736,7 @@ CLI_VARIANTS = {
     "claude-code": ["low", "medium", "high", "xhigh", "max"],
     "codex": ["minimal", "low", "medium", "high", "xhigh"],
     "antigravity": ["low", "medium", "high"],
-    "opencode": [], "miyu": [],
+    "opencode": [], "litemiyu": [], "miyu": [],
 }
 
 
@@ -773,12 +782,22 @@ def set_profile_thinking(profile, model, vid):
 _catalog_cache = {"data": None, "path": None}
 
 
+def _agent_catalogs():
+    """LiteMiyu / Miyu 缓存的 models.dev 目录（原样存的 api.json，格式同自己拉的那一份）。"""
+    found = []
+    for kind in AGENT_SOURCES:
+        places = _agent_places(kind)
+        if places:
+            found.append(os.path.join(places[2], "models", "models-dev.json"))
+    return [p for p in found if os.path.isfile(p)]
+
+
 def _catalog_candidates():
-    return [p for p in (MIYU_CATALOG, CATALOG_FILE) if os.path.isfile(p)]
+    return _agent_catalogs() + [p for p in (CATALOG_FILE,) if os.path.isfile(p)]
 
 
 def catalog_path():
-    """优先用较新的那份：Miyu 的缓存或自己拉的。"""
+    """优先用较新的那份：LiteMiyu / Miyu 的缓存或自己拉的。"""
     paths = _catalog_candidates()
     if not paths:
         return None
@@ -804,7 +823,7 @@ def catalog_load():
 
 
 def catalog_needs_refresh():
-    if os.path.isfile(MIYU_CATALOG):
+    if _agent_catalogs():
         return False
     try:
         return time.time() - os.path.getmtime(CATALOG_FILE) > CATALOG_TTL
@@ -1067,56 +1086,8 @@ def resolve_request(profile, settings, pid=""):
 
 
 # ==========================================
-# 🖥️ 本机 CLI 后端与 Miyu 导入
+# 🖥️ 本机 CLI 后端与 LiteMiyu / Miyu 导入
 # ==========================================
-def strip_jsonc(text):
-    """去掉 // 与 /* */ 注释（跳过字符串内部），Miyu 的 config.jsonc 用。"""
-    out = []
-    i, n = 0, len(text)
-    in_str = False
-    while i < n:
-        c = text[i]
-        if in_str:
-            out.append(c)
-            if c == "\\" and i + 1 < n:
-                out.append(text[i + 1])
-                i += 2
-                continue
-            if c == '"':
-                in_str = False
-            i += 1
-            continue
-        if c == '"':
-            in_str = True
-            out.append(c)
-            i += 1
-        elif text.startswith("//", i):
-            while i < n and text[i] != "\n":
-                i += 1
-        elif text.startswith("/*", i):
-            end = text.find("*/", i + 2)
-            i = n if end < 0 else end + 2
-        else:
-            out.append(c)
-            i += 1
-    return "".join(out)
-
-
-def split_api_keys(raw):
-    """Miyu 的 api_key 可以是逗号/换行分隔的多把 key，也可以是 $env:NAME。"""
-    keys = []
-    for line in str(raw or "").splitlines():
-        for item in line.split(","):
-            item = item.strip()
-            if not item:
-                continue
-            if item.startswith("$env:"):
-                item = os.environ.get(item[5:].strip(), "").strip()
-            if item:
-                keys.append(item)
-    return keys
-
-
 def cli_model_catalog(protocol, binary=""):
     """本机 CLI 的模型清单：能问命令的就问（缓存一天），否则用预置列表。"""
     backend = CLI_BACKENDS.get(protocol)
@@ -1164,6 +1135,8 @@ def builtin_cli_profiles():
     for protocol, backend in CLI_BACKENDS.items():
         if not shutil.which(backend["binary"]):
             continue
+        if protocol == "miyu" and not miyu_is_current(backend["binary"]):
+            continue  # 旧版 Miyu（0.7.x）的命令行是另一套，不再支持
         profiles[backend["id"]] = {
             "name": backend["name"], "protocol": protocol, "api_url": "", "api_key": "",
             "binary": backend["binary"], "model": backend["default"], "thinking": {}, "source": "builtin",
@@ -1171,90 +1144,135 @@ def builtin_cli_profiles():
     return profiles
 
 
-def miyu_thinking_defaults():
+def miyu_is_current(binary="miyu"):
+    """这个 miyu 是不是新版（2026 年起，版本号是 年.月.序号）。"""
     try:
-        with open(MIYU_THINKING, "r", encoding="utf-8") as f:
+        out = subprocess.run([binary, "--version"], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    found = re.search(r"(\d+)\.\d+", out)
+    return bool(found) and int(found.group(1)) >= 2026
+
+
+def _load_toml(path):
+    try:
+        import tomllib  # Python 3.11 起自带；更老的读不了，导入那一层就是空的
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+    except (ImportError, OSError, ValueError):
+        return {}
+
+
+def _load_json(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        selected = data.get("selected") if isinstance(data, dict) else None
-        return selected if isinstance(selected, dict) else {}
+        return data if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
 
 
-def miyu_profiles():
-    """只读导入 Miyu 的供应商：id 前缀 miyu_；CLI 中转线映射到同名协议，HTTP 线要有 key。"""
-    try:
-        with open(MIYU_CONFIG, "r", encoding="utf-8") as f:
-            cfg = json.loads(strip_jsonc(f.read()))
-    except (OSError, ValueError):
-        return {}
-    if not isinstance(cfg, dict):
-        return {}
-    plugins = cfg.get("plugins") if isinstance(cfg.get("plugins"), dict) else {}
-    thinking_defaults = miyu_thinking_defaults()
-    profiles = {}
-    for prov in cfg.get("providers") or []:
-        if not isinstance(prov, dict) or prov.get("enabled", True) is False:
-            continue
-        raw_id = str(prov.get("id", "")).strip()
-        if not raw_id:
-            continue
-        raw_protocol = str(prov.get("protocol", "")).strip().lower()
-        if raw_protocol == "openai-responses":
-            continue
-        base_url = str(prov.get("base_url", "")).strip().rstrip("/")
-        protocol = PROTOCOL_ALIASES.get(raw_protocol)
-        if protocol is None:
-            continue
-        keys = split_api_keys(prov.get("api_key") or "")
-        api_key = keys[0] if keys else ""
-        models = [str(m).strip() for m in (prov.get("models") or []) if str(m).strip()]
-        default_model = str(prov.get("default_model") or (models[0] if models else "")).strip()
-        binary = ""
-        if is_cli_protocol(protocol):
-            plugin_key = {"claude-code": "claude_code", "antigravity": "antigravity", "codex": "codex"}.get(protocol)
-            if plugin_key and isinstance(plugins.get(plugin_key), dict):
-                binary = str(plugins[plugin_key].get("binary", "")).strip()
-            if not shutil.which(binary or CLI_BACKENDS[protocol]["binary"]):
-                continue
-            api_url = ""
-            default_model = default_model or CLI_BACKENDS[protocol]["default"]
+def _agent_places(kind):
+    """LiteMiyu / Miyu 的 (配置, 密钥, 缓存目录)；Miyu 的数据根不是新版布局的不认（返回 None）。"""
+    home = os.path.expanduser("~")
+
+    def xdg(var, default):
+        value = os.environ.get(var, "")
+        return value if value.startswith("/") else os.path.join(home, default)
+
+    if kind == "litemiyu":
+        root = os.environ.get("LITEMIYU_HOME", "")
+        if root:
+            config_dir, cache_dir = os.path.join(root, "config"), os.path.join(root, "cache")
         else:
-            if not api_key or not base_url:
-                continue
-            is_anthropic = protocol == "anthropic" or "anthropic" in base_url.lower()
-            if is_anthropic:
-                protocol = "anthropic"
-                api_url = base_url + ("/messages" if base_url.lower().endswith("/v1") else "/v1/messages")
-            elif "generativelanguage" in base_url.lower():
-                api_url = base_url + ("/openai/chat/completions" if not base_url.lower().endswith("/openai") else "/chat/completions")
-            else:
-                api_url = base_url if base_url.lower().endswith("/chat/completions") else base_url + "/chat/completions"
-        pid = "miyu_" + re.sub(r"[^a-zA-Z0-9_]", "_", raw_id)
-        thinking = {}
-        for m in set(models + [default_model]):
-            vid = str(thinking_defaults.get(f"{raw_id}\t{m}", "") or "")
-            if vid:
-                thinking[m] = "off" if vid == "none" else vid
-        profile = {
-            "name": str(prov.get('display_name') or raw_id), "protocol": protocol,
-            "api_url": api_url, "api_key": api_key, "binary": binary,
-            "model": default_model, "thinking": thinking, "source": "miyu",
+            config_dir = os.path.join(xdg("XDG_CONFIG_HOME", ".config"), "litemiyu")
+            cache_dir = os.path.join(xdg("XDG_CACHE_HOME", ".cache"), "litemiyu")
+        return os.path.join(config_dir, "config.toml"), os.path.join(config_dir, "secrets.toml"), cache_dir
+    root = os.environ.get("MIYU_HOME", "") or os.path.join(home, ".miyu")
+    if root.startswith("~"):
+        root = os.path.join(home, root[1:].lstrip("/"))
+    if not os.path.exists(os.path.join(root, ".miyu-layout")):
+        return None
+    return (os.path.join(root, "etc", "config.toml"), os.path.join(root, "etc", "private", "secrets.toml"),
+            os.path.join(root, "var", "cache"))
+
+
+# 没写地址、目录里也查不到时照这几家的（同 LiteMiyu 出厂的档案）。
+_KNOWN_API = {"deepseek": "https://api.deepseek.com", "anthropic": "https://api.anthropic.com/v1",
+              "openai": "https://api.openai.com/v1"}
+
+
+def agent_profiles(kind):
+    """只读导入 LiteMiyu / Miyu 的供应商：id 前缀 litemiyu_ / miyu_；HTTP 线要有 key。
+
+    两家的配置是同一种 TOML：[providers.<id>] 的 driver / base_url / key / catalog，[models] chat。
+    没写 base_url 的照 models.dev 目录取地址。模型用主对话的那个（是这一家的话），不然用配置里写的
+    第一个、它们拉过存下的列表里的第一个；Responses 接口的不导（这里只说 Chat 和 Anthropic 两种）。"""
+    places = _agent_places(kind)
+    if not places:
+        return {}
+    config_path, secrets_path, cache_dir = places
+    cfg, keys = _load_toml(config_path), _load_toml(secrets_path)
+    providers = cfg.get("providers")
+    if not isinstance(providers, dict):
+        return {}
+    catalog = catalog_load()
+    chat = cfg.get("models", {}).get("chat") if isinstance(cfg.get("models"), dict) else None
+    profiles = {}
+    for raw_id, prov in providers.items():
+        if not isinstance(prov, dict):
+            continue
+        known_as = prov.get("catalog") if isinstance(prov.get("catalog"), str) else raw_id
+        entry = catalog.get(known_as) if isinstance(catalog.get(known_as), dict) else {}
+        driver = prov.get("driver") if isinstance(prov.get("driver"), str) else ""
+        if not driver:
+            driver = "anthropic" if known_as == "anthropic" else "openai-chat"
+        if driver not in ("openai-chat", "anthropic"):
+            continue
+        base_url = prov.get("base_url") if isinstance(prov.get("base_url"), str) else ""
+        base_url = (base_url or str(entry.get("api") or "") or _KNOWN_API.get(known_as, "")).strip().rstrip("/")
+        api_key = ""
+        key = prov.get("key")
+        if isinstance(key, dict):
+            if isinstance(key.get("secret"), str):
+                api_key = keys.get(key["secret"]) if isinstance(keys.get(key["secret"]), str) else ""
+            elif isinstance(key.get("env"), str):
+                api_key = os.environ.get(key["env"], "").strip()
+        if not api_key or not base_url:
+            continue
+        models = list(prov["models"]) if isinstance(prov.get("models"), dict) else []
+        listed = _load_json(os.path.join(cache_dir, "models", "providers", raw_id + ".json")).get("models")
+        for item in listed if isinstance(listed, list) else []:
+            if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"] not in models:
+                models.append(item["id"])
+        default_model = chat[len(raw_id) + 1:] if isinstance(chat, str) and chat.startswith(raw_id + "/") else ""
+        default_model = default_model or (models[0] if models else "")
+        if not default_model:
+            continue
+        lower = base_url.lower()
+        if driver == "anthropic":
+            api_url = base_url + ("/messages" if lower.endswith("/v1") else "/v1/messages")
+        elif "generativelanguage" in lower:
+            api_url = base_url + ("/openai/chat/completions" if not lower.endswith("/openai") else "/chat/completions")
+        else:
+            api_url = base_url if lower.endswith("/chat/completions") else base_url + "/chat/completions"
+        pid = kind + "_" + re.sub(r"[^a-zA-Z0-9_]", "_", raw_id)
+        name = prov.get("name") if isinstance(prov.get("name"), str) and prov.get("name") else raw_id
+        profiles[pid] = {
+            "name": str(name), "protocol": driver,
+            "api_url": api_url, "api_key": api_key, "binary": "",
+            "model": default_model, "thinking": {}, "source": kind,
         }
-        if isinstance(prov.get("model_temperature"), dict):
-            profile["model_temperature"] = {str(k): v for k, v in prov["model_temperature"].items()}
-        if isinstance(prov.get("extra_body"), dict):
-            profile["extra_body"] = prov["extra_body"]
-        profiles[pid] = profile
     return profiles
 
 
 def sync_external_profiles(state):
-    """每次加载时刷新内置 CLI 与 Miyu 镜像：元数据以外部为准，用户选过的 model / thinking 保留。"""
+    """每次加载时刷新内置 CLI 与 LiteMiyu / Miyu 镜像：元数据以外部为准，用户选过的 model / thinking 保留。"""
     profiles = state.setdefault("profiles", {})
     external = {}
     external.update(builtin_cli_profiles())
-    external.update(miyu_profiles())
+    for kind in AGENT_SOURCES:
+        external.update(agent_profiles(kind))
     for pid, fresh in external.items():
         old = profiles.get(pid)
         if isinstance(old, dict) and old.get("source") == fresh["source"]:
@@ -1268,7 +1286,7 @@ def sync_external_profiles(state):
         profiles[pid] = fresh
     for pid in list(profiles):
         prof = profiles[pid]
-        if isinstance(prof, dict) and prof.get("source") in ("builtin", "miyu") and pid not in external:
+        if isinstance(prof, dict) and prof.get("source") in ("builtin",) + AGENT_SOURCES and pid not in external:
             del profiles[pid]
     if state.get("active_profile") not in profiles:
         state["active_profile"] = next((k for k, v in profiles.items() if isinstance(v, dict) and profile_is_usable(v)), "")
@@ -1662,8 +1680,21 @@ def cli_complete(profile, system_prompt, user_text, timeout=DEFAULT_CLI_TIMEOUT)
                 raise RuntimeError(err or f"opencode exited with {rc}")
             return text
 
+        if protocol == "litemiyu":
+            # litemiyu ask：话从标准输入读，回答在标准输出；--bare 是无功能预设（不带工具、记忆、技能）。
+            # 每调一次 LiteMiyu 会留下一个会话（它的 ask 没有不保存的选项）。
+            argv = [binary, "ask", "--format", "text", "--bare"]
+            rc, out, err = _run_cli(argv, combined, cwd=workdir, timeout=timeout)
+            text = _clean_answer(out)
+            if rc != 0 or not text:
+                raise RuntimeError(err or f"litemiyu exited with {rc}")
+            return text
+
         if protocol == "miyu":
-            rc, out, err = _run_cli([binary, "--stdout", "ask"], combined, cwd=workdir, timeout=timeout)
+            # 新版 Miyu：miyu ask，不带人格、不进长期记忆、无功能预设。
+            argv = [binary, "ask", "--format", "text", "--no-persona", "--no-memory", "--preset", "none",
+                    "--from", "rime-llm-translator"]
+            rc, out, err = _run_cli(argv, combined, cwd=workdir, timeout=timeout)
             text = _clean_answer(out)
             if rc != 0 or not text:
                 raise RuntimeError(err or f"miyu exited with {rc}")
@@ -1679,106 +1710,118 @@ def _settings_float(settings, key, default):
         return default
 
 
-def _miyu_supports_json(path):
-    """这个 miyu 认不认程序驱动那套参数（--output-format / --session）。
-    旧版把不认识的参数当消息正文发出去，不会报错，所以必须先探测再调用。"""
-    try:
-        st = os.stat(path)
-    except OSError:
-        return False
-    key, sig = os.path.realpath(path), f"{int(st.st_mtime)}:{st.st_size}"
-    try:
-        with open(MIYU_CAPS_FILE, "r", encoding="utf-8") as f:
-            caps = json.load(f)
-        if not isinstance(caps, dict):
-            caps = {}
-    except Exception:
-        caps = {}
-    hit = caps.get(key)
-    if isinstance(hit, dict) and hit.get("sig") == sig:
-        return bool(hit.get("ok"))
-    try:
-        _rc, out, _err = _run_cli([path, "ask", "--help"], "", timeout=15)
-        ok = "--output-format" in out and "--session" in out
-    except Exception:
-        ok = False
-    caps[key] = {"sig": sig, "ok": ok}
-    try:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        with open(MIYU_CAPS_FILE, "w", encoding="utf-8") as f:
-            json.dump(caps, f)
-    except OSError:
-        pass
-    return ok
+def find_agent(settings):
+    """聊天前缀找谁说话：交回 (哪一家, 程序的路径)。设置里指定了程序的照它（照文件名认是哪一家）；
+    没指定的先找 litemiyu、再找新版的 miyu。fcitx5 拉起的进程 PATH 常常没有 ~/.local/bin，所以不能只信 which。"""
+    def usable(kind, path):
+        return kind == "litemiyu" or miyu_is_current(path)
 
-
-def find_miyu(settings):
-    """挑一个够新的 miyu：设置里指定的优先，然后是 PATH，最后是常见安装位置。
-    fcitx5 拉起的进程 PATH 常常没有 ~/.local/bin，所以不能只信 which。"""
     configured = str(settings.get("miyu_binary", "") or "").strip()
     if configured:
         path = shutil.which(configured) or (configured if os.path.isfile(configured) else "")
         if not path:
             raise RuntimeError(f"command not found: {configured}")
-        if not _miyu_supports_json(path):
-            raise RuntimeError(f"{path} is too old: `ask` lacks --output-format/--session")
-        return path
-    seen, outdated = [], ""
-    for cand in (shutil.which("miyu"), os.path.expanduser("~/.local/bin/miyu"),
-                 "/usr/local/bin/miyu", "/usr/bin/miyu"):
-        if not cand or cand in seen or not os.path.isfile(cand):
-            continue
-        seen.append(cand)
-        if _miyu_supports_json(cand):
-            return cand
-        outdated = outdated or cand
+        kind = "litemiyu" if os.path.basename(path).startswith("litemiyu") else "miyu"
+        if not usable(kind, path):
+            raise RuntimeError(f"{path} is an old Miyu (0.7.x), which is no longer supported; install LiteMiyu or the new Miyu")
+        return kind, path
+    outdated = ""
+    for kind in AGENT_SOURCES:
+        seen = []
+        for cand in (shutil.which(kind), os.path.expanduser(f"~/.local/bin/{kind}"),
+                     f"/usr/local/bin/{kind}", f"/usr/bin/{kind}"):
+            if not cand or cand in seen or not os.path.isfile(cand):
+                continue
+            seen.append(cand)
+            if usable(kind, cand):
+                return kind, cand
+            outdated = outdated or cand
     if outdated:
-        raise RuntimeError(f"{outdated} is too old: `ask` lacks --output-format/--session (update Miyu)")
-    raise RuntimeError("command not found: miyu")
+        raise RuntimeError(f"{outdated} is an old Miyu (0.7.x), which is no longer supported; install LiteMiyu or the new Miyu")
+    raise RuntimeError("command not found: litemiyu or miyu")
 
 
-def miyu_chat(settings, vocab, text):
-    """`miyu ask --session <名> --create --output-format json ...`：一行 done/error 事件，返回 (正文, 模型, 耗时ms)。"""
-    binary = find_miyu(settings)
-    session = str(settings.get("miyu_session", "") or "").strip() or DEFAULT_MIYU_SESSION
+def _chat_sessions():
+    data = _load_json(CHAT_SESSIONS_FILE)
+    return {k: v for k, v in data.items() if isinstance(v, str) and v}
+
+
+def _chat_session_set(key, session_id):
+    sessions = _chat_sessions()
+    if session_id:
+        sessions[key] = session_id
+    else:
+        sessions.pop(key, None)
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(CHAT_SESSIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump(sessions, f)
+    except OSError:
+        pass
+
+
+def agent_chat(settings, vocab, text):
+    """跟 LiteMiyu / Miyu 的一个固定会话说一句：`<程序> ask --format json [-s <会话编号>]`，最后一行是一个 JSON
+    （`session` 是会话编号，`turns[-1].text` 是回答）。返回 (正文, 哪一家, 耗时ms)。
+
+    会话编号照「哪一家 + 设置里的会话名」记在缓存里，所以前后文是连着的；那个会话不在了（被删了）就新开一个。
+    两家的 ask 都没有追加系统提示词的参数：宿主指令在新开会话的第一句前面交代一次，之后每句只带命中的词库。
+    不让用工具的话，新开会话时用无功能的预设（LiteMiyu `--bare`，Miyu `--preset none`）。"""
+    kind, binary = find_agent(settings)
+    name = str(settings.get("miyu_session", "") or "").strip() or DEFAULT_MIYU_SESSION
+    key = f"{kind}:{name}"
     timeout = _settings_float(settings, "miyu_timeout", DEFAULT_MIYU_TIMEOUT)
     host_prompt = str(settings.get("miyu_prompt", "") or "").strip() or DEFAULT_MIYU_PROMPT
-    # 词库按需注入：她的宿主指令每次都要重发，词库越大越值得只贴命中的那几条
+    # 词库按需注入：只贴这一句命中的那几条
     block = vocab_block(vocab, text if str(settings.get("vocab_inject", "auto")) == "auto" else None)
-    if block:
-        host_prompt = f"{host_prompt}\n\n{block}"
-    argv = [binary, "ask", "--session", session, "--create", "--output-format", "json", "--quiet",
-            "--timeout", str(max(1, int(timeout))), "--append-system-prompt", host_prompt, "--stdin"]
-    if not settings.get("miyu_tools", False):
-        argv.append("--no-tools")
-    with tempfile.TemporaryDirectory(prefix="rime-llm-") as workdir:
-        rc, out, err = _run_cli(argv, text, cwd=workdir, timeout=timeout + 5)
-    event = {}
-    for line in reversed(out.splitlines()):
-        line = line.strip()
-        if not line.startswith("{"):
-            continue
-        try:
-            candidate = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(candidate, dict) and "type" in candidate:
-            event = candidate
-            break
-    if event.get("type") == "done":
-        answer = _clean_answer(str(event.get("text") or ""))
-        if not answer:
-            raise RuntimeError("miyu returned an empty answer")
-        return answer, str(event.get("model") or ""), event.get("elapsed_ms")
-    if event.get("type") == "error":
-        kind = str(event.get("kind") or "error")
-        msg = str(event.get("message") or "").strip()
-        if kind == "timeout":
-            raise RuntimeError(f"timed out after {timeout:g}s")
-        raise RuntimeError(f"{kind}: {msg}" if msg else kind)
-    if rc == 124:
+
+    def once(session_id):
+        argv = [binary, "ask", "--format", "json", "--timeout", f"{max(1, int(timeout))}s"]
+        if session_id:
+            argv += ["-s", session_id]
+            message = f"{block}\n\n{text}" if block else text
+        else:
+            if not settings.get("miyu_tools", False):
+                argv += ["--bare"] if kind == "litemiyu" else ["--preset", "none"]
+            if kind == "miyu":
+                argv += ["--from", "rime-llm-translator"]
+            message = "\n\n".join(part for part in (host_prompt, block, "---", text) if part)
+        t0 = time.time()
+        with tempfile.TemporaryDirectory(prefix="rime-llm-") as workdir:
+            rc, out, err = _run_cli(argv, message, cwd=workdir, timeout=timeout + 5)
+        result = {}
+        for line in reversed(out.splitlines()):
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                candidate = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(candidate, dict) and "turns" in candidate:
+                result = candidate
+                break
+        return rc, result, err, out, int((time.time() - t0) * 1000)
+
+    session_id = _chat_sessions().get(key, "")
+    rc, result, err, out, elapsed = once(session_id)
+    if session_id and not result:
+        # 记着的那个会话接不上了（被删了、换了数据目录）：新开一个再说一遍。
+        _chat_session_set(key, "")
+        rc, result, err, out, elapsed = once("")
+    if isinstance(result.get("session"), str) and result["session"]:
+        _chat_session_set(key, result["session"])
+    turns = result.get("turns") if isinstance(result.get("turns"), list) else []
+    last = turns[-1] if turns and isinstance(turns[-1], dict) else {}
+    answer = _clean_answer(str(last.get("text") or ""))
+    if answer and rc in (0, 4):
+        return answer, kind, elapsed
+    if rc == 3 or rc == 124:
         raise RuntimeError(f"timed out after {timeout:g}s")
-    raise RuntimeError(err or _clean_answer(out)[-200:] or f"miyu exited with {rc}")
+    if rc == 5:
+        raise RuntimeError(f"{kind} has no usable model yet: run `{kind}` to set one up")
+    reason = str(last.get("reason") or "").strip()
+    raise RuntimeError(err or reason or _clean_answer(out)[-200:] or f"{kind} exited with {rc}")
 
 
 def _notify(title, body):
@@ -1806,7 +1849,7 @@ def _chat_once(settings, state, user_text, session):
     """跑一次问答，返回 (正文或 `ERR: ...`, 成功与否)。"""
     t0 = time.time()
     try:
-        answer, model, _elapsed = miyu_chat(settings, state.get("vocab", {}), user_text)
+        answer, model, _elapsed = agent_chat(settings, state.get("vocab", {}), user_text)
     except Exception as e:
         _debug_log(f"【Miyu 聊天】 {session}", user_text, f"ERR: {e}", time.time() - t0)
         return f"ERR: {e}", False
@@ -1889,6 +1932,12 @@ def _chat_handoff(settings, state, user_text, session, wait):
 def run_chat(argv):
     """`rime-llm-config chat <text>`：把一句话发进 Miyu 的固定会话，正文写 stdout；
     失败时首行 `ERR: ...` 并以 1 退出，转后台时首行 `BG: ...`（Lua 侧靠前缀分辨）。"""
+    if argv == ["--reset"]:
+        # 清掉记着的会话编号：下一句开一个新的会话（原来的会话还在 LiteMiyu / Miyu 里，没有删）。
+        name = str(load_state().get("settings", {}).get("miyu_session", "") or "").strip() or DEFAULT_MIYU_SESSION
+        for kind in AGENT_SOURCES:
+            _chat_session_set(f"{kind}:{name}", "")
+        print(t("chat_reset_done", name)); return 0
     user_text = " ".join(argv).strip()
     if not user_text and not sys.stdin.isatty():
         user_text = sys.stdin.read().strip()
@@ -2867,7 +2916,7 @@ def cli_handler():
             prefix = str(s.get("miyu_prefix", DEFAULT_MIYU_PREFIX) or "").strip()
             if prefix:
                 try:
-                    where = find_miyu(s)
+                    where = "{} ({})".format(*reversed(find_agent(s)))
                 except Exception as e:
                     where = f"! {e}"
                 miyu_desc = (f"{prefix} → session '{s.get('miyu_session', DEFAULT_MIYU_SESSION)}', "
@@ -3307,8 +3356,8 @@ class ProviderEditorTUI:
         for pid, p in self.state["profiles"].items():
             tag = profile_tag(p)
             self.providers.append({"id": pid, "name": p.get("name", pid), "label": (f"[{tag}] " if tag else "") + p.get("name", pid), "api_url": p.get("api_url", ""), "api_key": p.get("api_key", ""), "model": p.get("model", ""), "protocol": stored_protocol(p), "binary": p.get("binary", ""), "source": p.get("source", ""), "profile": p})
-        # 分组：自己的节点 → 本机 CLI → Miyu 导入，组内按名字排
-        self.providers.sort(key=lambda x: ({"": 0, "user": 0, "builtin": 1, "miyu": 2}.get(x.get("source", ""), 0), x["name"].lower()))
+        # 分组：自己的节点 → 本机 CLI → LiteMiyu 导入 → Miyu 导入，组内按名字排
+        self.providers.sort(key=lambda x: ({"": 0, "user": 0, "builtin": 1, "litemiyu": 2, "miyu": 3}.get(x.get("source", ""), 0), x["name"].lower()))
         if not self.providers: self.providers.append({"id": "empty", "name": "No Providers", "label": "No Providers", "api_url": "", "api_key": "", "model": "", "protocol": "auto", "source": "", "profile": {}})
 
     def run(self):
@@ -3471,7 +3520,7 @@ class ProviderEditorTUI:
                 self._trigger_fetch()
         elif char.lower() == 'd' and self.active_col == 0 and has_provider:
             pid = self.providers[self.prov_idx]["id"]
-            if self.providers[self.prov_idx].get("source") in ("builtin", "miyu"):
+            if self.providers[self.prov_idx].get("source") in ("builtin",) + AGENT_SOURCES:
                 self.status_msg, self.status_flash = t('tui_sm_err_ext_del'), 40
                 return True
             if pid == self.state.get("active_profile"): self.state["active_profile"] = ""
@@ -3513,7 +3562,7 @@ class ProviderEditorTUI:
         res = form_dialog(self.stdscr, t('tui_sm_edit_prov', p['name']), fields_config)
         if not res:
             return
-        if p.get("source") in ("builtin", "miyu"):
+        if p.get("source") in ("builtin",) + AGENT_SOURCES:
             if res[0].strip() != p["id"] or res[1] != p["name"] or res[2].strip() != (p["binary"] or CLI_BACKENDS[p["protocol"]]["binary"]):
                 self.status_msg, self.status_flash = t('tui_sm_err_external', p["source"]), 40
             return
@@ -3544,9 +3593,9 @@ class ProviderEditorTUI:
         res = form_dialog(self.stdscr, t('tui_sm_edit_prov', p['name']), fields_config)
         if not res:
             return
-        if p.get("source") == "miyu":
+        if p.get("source") in AGENT_SOURCES:
             if res[0].strip() != p["id"] or res[1] != p["name"] or res[2] != p["api_url"] or res[3] != p["api_key"] or protocol_from_label(res[4]) != p["protocol"]:
-                self.status_msg, self.status_flash = t('tui_sm_err_external', "miyu"), 40
+                self.status_msg, self.status_flash = t('tui_sm_err_external', p["source"]), 40
             return
         new_id = res[0].strip()
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', new_id):
@@ -3730,7 +3779,7 @@ def run_app(stdscr):
         elif choice == "edit_miyu":
             s = state["settings"]
             try:
-                find_miyu(s)
+                find_agent(s)
             except Exception as e:
                 msgbox(stdscr, t('msg_info'), t('tui_miyu_bad', e))
             fields_miyu = [

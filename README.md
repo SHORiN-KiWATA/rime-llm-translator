@@ -2,7 +2,7 @@
 
 给Rime输入法接入大模型进行拼音联想，支持全拼和小鹤双拼，支持TUI图形化配置。平时正常输入，在遇到长难句或者生僻句的时候通过双击v键（全拼）或双击分号键（小鹤双拼）呼叫Ai对拼音进行处理。输入的时候不太需要考虑输入的拼音是否正确，大模型强大的预测功能会自动把误拼甚至乱序处理成正确的句子。对于句子中的英文词汇也能正常处理，甚至还能补充正确的空格和标点符号。
 
->甚至还能用输入法跟ai聊天，装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话还能用 `miyu:` 前缀直接找她说话。
+>甚至还能用输入法跟ai聊天，装了 [LiteMiyu](https://github.com/miyu-agent/litemiyu) 或 [Miyu](https://github.com/miyu-agent/miyu) 的话还能用 `miyu:` 前缀直接和它对话。
 
 以下是无法正常输入，但Ai可以联想出来的例子：
 
@@ -87,7 +87,7 @@
 
     运行`rime-llm-config`命令进行模型配置。自带了一个 opencode zen 的公共节点，算是体验一下hhh
 
-    > 本机装了 `claude` / `codex` / `agy` / `opencode` / `miyu` 中任意一个的话，不用填 key 也能直接用，见下面的「本机 CLI 后端」。
+    > 本机装了 `claude` / `codex` / `agy` / `opencode` / `litemiyu` / `miyu` 中任意一个的话，不用填 key 也能直接用，见下面的「本机 CLI 后端」。在 LiteMiyu 或 Miyu 里配好了供应商的话，这里会自动导入，不用再配一遍。
 
     > opencode zen 从 09-19 起给免费模型加了一道「只能从 OpenCode 里用」的闸，第三方客户端一律 `403 · OpenCode's free tier can only be used from within OpenCode`。实测判据是请求得长得像 opencode 发的：流式、工具清单里有 `shell` 和 `read`、带 `x-opencode-*` 头。所以发往 `opencode.ai/zen` 的请求会自动改成这个形状（流式 + 两条永不调用的占位工具声明），其他节点一个字节都不动。这是对面服务端的策略，他们随时可能改判据，免费模型又开始报 403 的话就是这里过期了。
 
@@ -114,7 +114,7 @@ patch:
 
 薄荷小鹤方案默认通过 `codeLengthLimit_processor: 25` 限制编码长度，超过后会删除末尾输入，长句无法完整交给 AI。小鹤初始化补丁会用 `"codeLengthLimit_processor": null` 停用这个限制；已初始化过的用户再次运行 `rime-llm-config init` 并重新部署即可升级。该补丁也适用于没有此处理器的官方和雾凇小鹤方案。需要恢复原方案的长度限制时，从 `double_pinyin_flypy.custom.yaml` 删除这条补丁后重新部署。
 
-请求发送前，小鹤编码会按标准键位展开成带音节空格的全拼，支持零声母、`zh/ch/sh`、`ü` 和共用韵母键。前缀保持原样，HTTP、CLI 和 Miyu 后端共用这一步转换。自定义词库中的「常用英文词」和「拼音缩写映射」会保留原拼写；混输英文建议先加入常用英文词，或使用全大写拼写。无法识别的双字母码和末尾单个声母会原样交给模型纠错，未配置映射的简拼仍可能存在歧义。小鹤音形、形码和其他双拼布局不在当前支持范围内。
+请求发送前，小鹤编码会按标准键位展开成带音节空格的全拼，支持零声母、`zh/ch/sh`、`ü` 和共用韵母键。前缀保持原样，HTTP、CLI 和聊天后端共用这一步转换。自定义词库中的「常用英文词」和「拼音缩写映射」会保留原拼写；混输英文建议先加入常用英文词，或使用全大写拼写。无法识别的双字母码和末尾单个声母会原样交给模型纠错，未配置映射的简拼仍可能存在歧义。小鹤音形、形码和其他双拼布局不在当前支持范围内。
 
 从源码安装到用户目录（无需覆盖系统文件）：
 
@@ -138,10 +138,11 @@ install -Dm644 src/default_state.json ~/.local/bin/default_state.json
 | Codex CLI       | `codex`    | gpt-5.6-terra            |
 | Antigravity CLI | `agy`      | gemini-3.8-flash-low     |
 | opencode CLI    | `opencode` | opencode/big-pickle      |
+| LiteMiyu        | `litemiyu` | 用 LiteMiyu 当前的模型   |
 | Miyu            | `miyu`     | 交给 Miyu 自己的模型路由 |
 
 - 打开 `rime-llm-config` 时会自动探测 PATH 上有哪些命令，各生成一个 `[CLI]` 节点；模型列表能问命令的就问命令（缓存一天），在「供应商和模型」里照常选模型，在「激活配置」里选中即可。
-- 装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话，会顺带只读导入 Miyu 里配好的供应商，显示为 `[Miyu]` 节点（id 前缀 `miyu_`，列表里排在自己的节点和 `[CLI]` 节点之后），改了 Miyu 的配置下次打开自动同步；这类节点只能在这里改模型和思考档位。Miyu 里 `$env:NAME` 形式和逗号分隔的多把 key 会被解析后取第一把；Miyu 里给每个模型选过的思考档位也会作为默认值带过来。
+- 装了 [LiteMiyu](https://github.com/miyu-agent/litemiyu) 或 [Miyu](https://github.com/miyu-agent/miyu) 的话，会顺带只读导入它们里面配好的供应商和密钥，显示为 `[LiteMiyu]`、`[Miyu]` 节点（id 前缀 `litemiyu_`、`miyu_`，列表里排在自己的节点和 `[CLI]` 节点之后），改了它们的配置下次打开自动同步；这类节点只能在这里改模型和思考档位。读的是 `~/.config/litemiyu/config.toml` 和 `~/.miyu/etc/config.toml`（以及各自的密钥文件），要 Python 3.11 以上；模型默认用它们主对话的那个模型。Responses 接口的供应商、没有密钥的供应商不会导入。旧版 Miyu（0.7.x）不再支持。
 - CLI 节点的编辑表单里可以改可执行文件路径；思考档位和 HTTP 节点一样，在模型列表上按 `t` 选（claude 五档、codex 五档、agy 只对 claude-* 模型开放三档）。
 - 每次请求是一次性的，不带会话、不开工具、不写磁盘。CLI 线比直连 HTTP 慢：实测 claude sonnet 约 3 秒，codex / agy / opencode 约 7~10 秒，超时可在「全局参数设置 → CLI 后端超时」调整（默认 60 秒）。
 - Lua 侧走 CLI 时是调用 `rime-llm-config ask` 完成请求的，`rime-llm-config ask "拼音"` 也可以在终端里直接用来排查问题；`rime-llm-config debug` 的日志同样会记录 CLI 线的请求。
@@ -166,20 +167,20 @@ install -Dm644 src/default_state.json ~/.local/bin/default_state.json
 
   `moe:` 以猫娘预期输出
 
-## 跟 Miyu 聊天
+## 跟 LiteMiyu / Miyu 聊天
 
-装了 [Miyu](https://github.com/SHORiN-KiWATA/Miyu) 的话，拼音以 `miyu:` 开头时不走当前供应商，而是直接把这句话发给 Miyu，她的回答作为第一个候选上屏。跟 `call:` 是两回事：`call:` 是让**当前节点**的模型帮你解决问题，`miyu:` 是找 **Miyu** 本人说话，两条线不会混。
+装了 [LiteMiyu](https://github.com/miyu-agent/litemiyu) 或 [Miyu](https://github.com/miyu-agent/miyu) 的话，拼音以 `miyu:` 开头时不走当前供应商，而是直接把这句话发给它，回答作为第一个候选上屏。跟 `call:` 是两回事：`call:` 是让**当前节点**的模型帮你解决问题，`miyu:` 是找 **LiteMiyu / Miyu** 说话，两条线不会混。两个都装了的话先用 LiteMiyu；想指定用哪一个，在「跟 LiteMiyu / Miyu 聊天」的设置里填程序的路径。
 
 ```
 miyu:xianzaijidian        →  晚上10点15分。
 miyu:wogangcaishuolesm    →  你说的是测试一下。
 ```
 
-- 说的话进的是 Miyu 的一个固定会话（默认叫 `rime`，不存在就建），所以**前后文是连着的**，可以接着上一句问。想清空重开：`miyu session clear rime`。
-- 用哪个模型交给 Miyu 自己决定，跟着她的全局模型池走。想给这个会话单独定一个：`miyu session models rime <序号或模型名>`，`default` 恢复跟随全局。
-- 冒号后面的内容原样交给 Miyu，不参与提示词里 `cn:` / `jp:` / `moe:` 那套前缀组合。
-- 发给她的宿主指令里带了拼音还原的注意点（英文词、纯首字母简拼、前后鼻音、数字读音、断句和书名号）和自定义词库，所以 `mrfz` 这种简拼她也认。
-- 默认不给她工具、要求短答案纯文本，实测一问一答 4 到 15 秒。
+- 说的话进的是一个固定会话，所以**前后文是连着的**，可以接着上一句问。想清空重开：`rime-llm-config chat --reset`（原来的会话还留在 LiteMiyu / Miyu 里，没有删）。设置里的「会话名」换一个，也是新开一个会话。
+- 用哪个模型由 LiteMiyu / Miyu 自己决定，跟着它们的默认模型走。
+- 冒号后面的内容原样交过去，不参与提示词里 `cn:` / `jp:` / `moe:` 那套前缀组合。
+- 宿主指令里带了拼音还原的注意点（英文词、纯首字母简拼、前后鼻音、数字读音、断句和书名号）和自定义词库，所以 `mrfz` 这种简拼也认。宿主指令在新开会话的第一句前面交代一次。
+- 默认不给工具（新开会话时用无功能的预设）、要求短答案纯文本。
 
 ## 编辑配置
 
@@ -203,7 +204,7 @@ miyu:wogangcaishuolesm    →  你说的是测试一下。
 
   ![](pictures/TUI/provider.png)
 
-  配置可用之后右侧会出现`可用模型`列表，回车确定此配置使用的模型。会思考的模型后面带 `[思考]` 标记，在模型上按 `t` 选思考档位（关闭 / 开启 / low / medium / high / max 等，按模型分别记住）。档位表来自 [models.dev](https://models.dev) 的模型目录：本机装了 Miyu 就直接复用它的缓存，否则首次打开时自动下载并缓存一天，也可以用 `rime-llm-config catalog` 手动刷新；目录里没有的模型按厂商族（DeepSeek、Gemini、MiMo、智谱、OpenRouter、Anthropic）给出默认档位。各家的私有写法（`thinking.type`、`reasoning_effort`、`reasoning.effort`、`output_config.effort`、`deepseek-chat` 与 `deepseek-reasoner` 互换、Anthropic 思考时不传 temperature）在导出 `config.lua` 时解析成每个节点的 `request_extra`，Lua 侧不再识别厂商。`rime-llm-config status` 会把当前节点解析后的请求附加字段打印出来。
+  配置可用之后右侧会出现`可用模型`列表，回车确定此配置使用的模型。会思考的模型后面带 `[思考]` 标记，在模型上按 `t` 选思考档位（关闭 / 开启 / low / medium / high / max 等，按模型分别记住）。档位表来自 [models.dev](https://models.dev) 的模型目录：本机装了 LiteMiyu 或 Miyu 就直接复用它们的缓存，否则首次打开时自动下载并缓存一天，也可以用 `rime-llm-config catalog` 手动刷新；目录里没有的模型按厂商族（DeepSeek、Gemini、MiMo、智谱、OpenRouter、Anthropic）给出默认档位。各家的私有写法（`thinking.type`、`reasoning_effort`、`reasoning.effort`、`output_config.effort`、`deepseek-chat` 与 `deepseek-reasoner` 互换、Anthropic 思考时不传 temperature）在导出 `config.lua` 时解析成每个节点的 `request_extra`，Lua 侧不再识别厂商。`rime-llm-config status` 会把当前节点解析后的请求附加字段打印出来。
 
 - 全局参数配置
 

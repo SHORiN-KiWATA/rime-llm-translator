@@ -6,9 +6,9 @@
 --                 记下当时的拼音（context property），编码区里永远只有纯拼音
 --   · HTTP 线走 curl，协议只有 openai-chat / anthropic 两种；厂商差异（思考档、
 --     改模型名）全部由 rime-llm-config 在导出 config.lua 时解析成 request_extra
---   · CLI 线（claude / codex / agy / opencode / miyu）交给 rime-llm-config ask
+--   · CLI 线（claude / codex / agy / opencode / litemiyu / miyu）交给 rime-llm-config ask
 --   · 拼音以聊天前缀（默认 miyu:）开头时不走当前节点，而是交给 rime-llm-config chat
---     去跟 Miyu 的固定会话对话（call: 仍然是问当前供应商，两者互不混淆）
+--     去跟 LiteMiyu / Miyu 的固定会话对话（call: 仍然是问当前供应商，两者互不混淆）
 --
 -- 省 token 的几条约定（改这个文件时别破坏）：
 --   · system 分成「常驻核心 + 按需追加」两截。核心逐字节恒定，DeepSeek / OpenAI 的自动
@@ -720,7 +720,7 @@ end
 -- ==============================================================================
 -- 后端：CLI（rime-llm-config ask）
 -- ==============================================================================
-local CLI_PROTOCOLS = { ["claude-code"] = true, codex = true, antigravity = true, opencode = true, miyu = true }
+local CLI_PROTOCOLS = { ["claude-code"] = true, codex = true, antigravity = true, opencode = true, litemiyu = true, miyu = true }
 
 local function config_tool_of(cfg)
     local tool = cfg.config_tool
@@ -756,7 +756,7 @@ local function ask_cli_backend(cfg, profile_id, profile, send_text, history_text
 end
 
 -- ==============================================================================
--- 后端：Miyu 聊天（rime-llm-config chat → miyu ask --session ...）
+-- 后端：LiteMiyu / Miyu 聊天（rime-llm-config chat → litemiyu ask / miyu ask，固定会话）
 -- ==============================================================================
 local function chat_prefix_of(cfg)
     local prefix = cfg and cfg.miyu_prefix
@@ -1364,7 +1364,7 @@ local function translator_func(input, seg, env)
     send_text = string.gsub(send_text, "[\\/]", "、")
     if #send_text == 0 then return end
 
-    -- 聊天前缀：不看当前节点，直接找 Miyu 的固定会话。回复和「已转后台」都进缓存，
+    -- 聊天前缀：不看当前节点，直接找 LiteMiyu / Miyu 的固定会话。回复和「已转后台」都进缓存，
     -- 免得 Rime 重建菜单时重复提问（转后台的那句尤其不能再问一遍）
     local chat_text = chat_text_of(cfg, send_text)
     if chat_text then
